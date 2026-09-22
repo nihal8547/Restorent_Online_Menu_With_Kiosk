@@ -38,6 +38,8 @@ function normItem(raw) {
   return {
     sku: pick(raw, "sku", "plu", "product_id", "productId", "item_id", "itemId", "pos_item_id", "posItemId", "code"),
     menuItemId: pick(raw, "menuItemId"), // already-mapped payloads (e.g. internal tests)
+    // product name from the platform — used to auto-suggest a menu-item match.
+    name: pick(raw, "name", "product_name", "productName", "item_name", "itemName", "title", "description") || null,
     qty: Number(pick(raw, "quantity", "qty", "count") ?? 1) || 1,
     note: pick(raw, "special_instructions", "specialInstructions", "notes", "note", "remark", "comment") || null,
   };

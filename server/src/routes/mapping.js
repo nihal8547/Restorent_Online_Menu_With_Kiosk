@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import { reprocessFailed } from "../services/deliveryIngest.js";
 
 const router = Router();
 const adminOnly = [requireAuth, requireRole("ADMIN")];
@@ -69,7 +70,82 @@ router.put("/", ...adminOnly, async (req, res, next) => {
         update: { menuItemId },
         create: { platform, sku, menuItemId },
       }),
+      // this SKU is now mapped — drop any pending suggestion for it
+      prisma.platformSkuSuggestion.deleteMany({ where: { platform, sku } }),
     ]);
+    // Any previously failed orders that are now mappable become real orders.
+    const reprocessed = await reprocessFailed(platform);
+    res.json({ ok: true, reprocessed });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ---------- Auto-learned SKU suggestions ----------
+
+// GET /api/mapping/suggestions — pending SKUs seen from delivery orders, each
+// with the platform's product name and a best-guess menu item, plus the full
+// item list for the dropdown.
+router.get("/suggestions", ...adminOnly, async (req, res, next) => {
+  try {
+    const [suggestions, items] = await Promise.all([
+      prisma.platformSkuSuggestion.findMany({ orderBy: [{ seenCount: "desc" }, { updatedAt: "desc" }] }),
+      prisma.menuItem.findMany({
+        orderBy: [{ categoryId: "asc" }, { id: "asc" }],
+        select: { id: true, name: true, category: { select: { name: true } } },
+      }),
+    ]);
+    res.json({
+      suggestions: suggestions.map((s) => ({
+        id: s.id,
+        platform: s.platform,
+        sku: s.sku,
+        name: s.name,
+        suggestedMenuItemId: s.suggestedMenuItemId,
+        seenCount: s.seenCount,
+      })),
+      items: items.map((i) => ({ id: i.id, name: i.name, category: i.category?.name })),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/mapping/suggestions/:id/approve  { menuItemId }
+// Creates the mapping, removes the suggestion, and re-processes pending orders.
+router.post("/suggestions/:id/approve", ...adminOnly, async (req, res, next) => {
+  try {
+    const suggestion = await prisma.platformSkuSuggestion.findUnique({ where: { id: Number(req.params.id) } });
+    if (!suggestion) return res.status(404).json({ error: "Suggestion not found" });
+    const menuItemId = Number(req.body?.menuItemId || suggestion.suggestedMenuItemId);
+    if (!menuItemId) return res.status(400).json({ error: "Pick a menu item to map to" });
+
+    const clash = await prisma.platformItemMap.findUnique({
+      where: { platform_sku: { platform: suggestion.platform, sku: suggestion.sku } },
+    });
+    if (clash && clash.menuItemId !== menuItemId) {
+      return res.status(409).json({ error: "This SKU is already mapped to another item" });
+    }
+
+    await prisma.$transaction([
+      prisma.platformItemMap.upsert({
+        where: { platform_sku: { platform: suggestion.platform, sku: suggestion.sku } },
+        update: { menuItemId },
+        create: { platform: suggestion.platform, sku: suggestion.sku, menuItemId },
+      }),
+      prisma.platformSkuSuggestion.delete({ where: { id: suggestion.id } }),
+    ]);
+    const reprocessed = await reprocessFailed(suggestion.platform);
+    res.json({ ok: true, reprocessed });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// DELETE /api/mapping/suggestions/:id — dismiss a suggestion.
+router.delete("/suggestions/:id", ...adminOnly, async (req, res, next) => {
+  try {
+    await prisma.platformSkuSuggestion.delete({ where: { id: Number(req.params.id) } });
     res.json({ ok: true });
   } catch (e) {
     next(e);
