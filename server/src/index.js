@@ -52,7 +52,8 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 // origin can load uploaded images.
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN.split(","), credentials: true }));
-app.use(express.json({ limit: "1mb" }));
+// Capture the raw body (needed to verify HMAC webhook signatures).
+app.use(express.json({ limit: "1mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.set("trust proxy", 1); // correct client IPs behind a reverse proxy (for rate limiting)
 
 // Rate limiters: strict on auth (brute-force) and webhooks (abuse), lighter elsewhere.

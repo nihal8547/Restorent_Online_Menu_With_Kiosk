@@ -142,21 +142,35 @@ and never returned to the browser (only masked). Each platform shows the **Webho
 to hand to that partner, plus Enable and Test controls. API: `/api/integrations/*`.
 
 `POST /api/webhooks/{snoonu|talabat|keeta|rafeeq|deliveroo}` receives each platform's own
-payload. The request must carry `x-webhook-secret` matching that platform's stored secret,
-the integration must be enabled, and duplicate `externalId`s are ignored (idempotent).
+payload. The integration must be enabled, the request must pass that platform's signature
+check, and duplicate `externalId`s are ignored (idempotent).
 
-**Payload mapping** happens in two layers:
+### Per-platform wiring
 
-1. **Field mapping** — `server/src/utils/platformAdapters.js` has a per-platform adapter
-   (`mapTalabat`, `mapSnoonu`, `mapKeeta`, `mapRafeeq`, `mapDeliveroo`) that translates the
-   platform's JSON (their field names for order id, customer, address, line items) into our
-   normalised order shape. The adapters accept several common field-name variants; tighten
-   them against each platform's real API docs when you onboard.
-2. **Item (SKU) mapping** — each platform sends its own product code (SKU/PLU). In
-   **Admin → Menu Mapping** you map each menu item to each platform's SKU. Incoming line
-   items are resolved to your menu via these codes (`/api/mapping`). If an order contains an
-   unmapped SKU, the webhook responds `422` with the unmapped SKUs (the raw payload is logged
-   under *failed* orders) so you can add the mapping and the platform retries.
+Each partner authenticates and signs differently, so inbound and outbound are wired
+individually in `server/src/integrations/platformSpecs.js` (`getPlatformSpec`). Every field
+can be overridden per integration, without a code change, via the `config` JSON
+(`config.inbound` / `config.outbound` win over the built-in defaults).
+
+- **Inbound signature** — `shared-secret` (the header value must equal the stored webhook
+  secret, e.g. Talabat/Snoonu/Rafeeq's `x-webhook-secret`) or `hmac-sha256` (the platform
+  signs the raw body and sends the digest in its header — Keeta's `x-keeta-signature`,
+  Deliveroo's `x-deliveroo-hmac-sha256`; verified timing-safe over the raw request body, a
+  `sha256=` prefix is accepted). Set via `config.inbound.{signature,signatureHeader,digest}`.
+- **Outbound status push** — `server/src/services/deliveryOutbound.js` pushes each status
+  change to the partner using the spec's `authScheme` (`bearer` → `Authorization: Bearer`,
+  or `apiKey` → a custom header such as Snoonu's `X-Api-Key`), `statusPath` (with
+  `{externalId}` substituted), `method`, `statusField` and `actionMap` (our status → the
+  platform's own vocabulary, e.g. Talabat `accepted` → `order_accepted`, Deliveroo
+  `ready` → `ready_for_collection`). Override via `config.outbound.*`.
+
+**Field mapping** — `server/src/utils/platformAdapters.js` has a per-platform adapter
+(`mapTalabat`, `mapSnoonu`, `mapKeeta`, `mapRafeeq`, `mapDeliveroo`) that translates the
+platform's JSON (their field names for order id, customer, address, line items) into our
+normalised order shape. Orders are ingested as **external orders** (no internal menu/SKU
+link) so they appear in Kitchen & Billing immediately. The adapters accept several common
+field-name variants; tighten them, and adjust each platform's block in `platformSpecs.js`,
+against the real partner-API docs when you onboard.
 
 ## Inventory, tax & KOT (POS features)
 

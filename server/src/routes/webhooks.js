@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getIntegration } from "./integrations.js";
-import { safeEqual } from "../utils/crypto.js";
+import { safeEqual, hmacSha256 } from "../utils/crypto.js";
+import { getPlatformSpec } from "../integrations/platformSpecs.js";
 import { ingestPlatformOrder } from "../services/deliveryIngest.js";
 
 const router = Router();
@@ -41,10 +42,30 @@ router.post("/:platform", async (req, res, next) => {
       return res.status(403).json({ error: `${source} integration is not enabled` });
     }
 
-    // Validate the webhook secret (per-platform stored secret; env as fallback).
-    const provided = req.headers["x-webhook-secret"];
-    const expected = integration.webhookSecret || ENV_FALLBACK_SECRET;
-    if (!expected || !safeEqual(provided, expected)) {
+    // Verify the webhook per the platform's inbound spec (shared-secret header
+    // vs. HMAC signature over the raw body). config.inbound can override.
+    const { inbound } = getPlatformSpec(source, integration.config || {});
+    const secret = integration.webhookSecret || ENV_FALLBACK_SECRET;
+    if (!secret) {
+      return res.status(401).json({ error: "Webhook secret not configured" });
+    }
+
+    const sigHeader = String(inbound.signatureHeader || "x-webhook-secret").toLowerCase();
+    const provided = req.headers[sigHeader];
+
+    let verified = false;
+    if (inbound.signature === "hmac-sha256") {
+      // Platform signs the raw body with HMAC-SHA256; compare (timing-safe) against
+      // the header. Accept an optional "sha256=" prefix (GitHub/Deliveroo style).
+      const digest = inbound.digest || "hex";
+      const computed = hmacSha256(req.rawBody, secret, digest);
+      const given = String(provided || "").replace(/^sha256=/i, "");
+      verified = safeEqual(given, computed);
+    } else {
+      // Shared-secret: the header value must equal the stored secret.
+      verified = safeEqual(provided, secret);
+    }
+    if (!verified) {
       return res.status(401).json({ error: "Invalid webhook signature" });
     }
 

@@ -1,27 +1,24 @@
 import { getIntegration } from "../routes/integrations.js";
-
-// Default per-platform status vocabulary. Real platforms differ; override via the
-// integration's `config.actionMap` JSON when you have their API docs.
-const DEFAULT_ACTION_MAP = {
-  ACCEPTED: "accepted",
-  REJECTED: "rejected",
-  READY: "ready",
-  PICKED_UP: "picked_up",
-  OUT_FOR_DELIVERY: "out_for_delivery",
-};
+import { getPlatformSpec } from "../integrations/platformSpecs.js";
 
 /**
  * Push an order's new status to the delivery platform's API.
  *
  * Best-effort and NON-BLOCKING for the caller: it never throws — it returns a
  * result object so the local status update always succeeds even if the platform
- * call fails. Configure per platform via the stored integration:
- *   baseUrl   — platform API base
- *   apiKey    — bearer token
- *   config.statusPath   — path template, default "/orders/{externalId}/status"
- *   config.statusField  — body field name, default "status"
- *   config.actionMap    — { OUR_STATUS: "their_value" }
- *   config.method       — HTTP method, default "POST"
+ * call fails.
+ *
+ * The per-platform wiring (endpoint, HTTP method, status vocabulary, auth
+ * scheme) comes from `getPlatformSpec(platform, config)` — see
+ * `server/src/integrations/platformSpecs.js`. Any field can be overridden at
+ * runtime, without a code change, via the integration's `config.outbound` JSON:
+ *   config.outbound.statusPath   — path template, {externalId} is substituted
+ *   config.outbound.statusField  — body field name for the status
+ *   config.outbound.actionMap    — { OUR_STATUS: "their_value" }
+ *   config.outbound.method       — HTTP method
+ *   config.outbound.authScheme   — "bearer" | "apiKey" | "none"
+ *   config.outbound.authHeader   — header name when authScheme is "apiKey"
+ *   config.outbound.extraHeaders — extra static headers
  *
  * @param {string} platform   e.g. "TALABAT"
  * @param {object} order      the order (needs externalId, platformStatus)
@@ -34,15 +31,24 @@ export async function pushStatus(platform, order, platformStatus) {
     if (!it.baseUrl || !it.apiKey) return { ok: false, skipped: true, reason: "baseUrl/apiKey not set" };
     if (!order.externalId) return { ok: false, skipped: true, reason: "no externalId" };
 
-    const cfg = it.config || {};
-    const actionMap = { ...DEFAULT_ACTION_MAP, ...(cfg.actionMap || {}) };
-    const mapped = actionMap[platformStatus] || String(platformStatus).toLowerCase();
+    const { outbound } = getPlatformSpec(platform, it.config || {});
 
-    const pathTpl = cfg.statusPath || "/orders/{externalId}/status";
+    const mapped = outbound.actionMap?.[platformStatus] || String(platformStatus).toLowerCase();
+
+    const pathTpl = outbound.statusPath || "/orders/{externalId}/status";
     const path = pathTpl.replace("{externalId}", encodeURIComponent(order.externalId));
     const url = `${it.baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? "" : "/"}${path}`;
-    const field = cfg.statusField || "status";
-    const method = (cfg.method || "POST").toUpperCase();
+    const field = outbound.statusField || "status";
+    const method = (outbound.method || "POST").toUpperCase();
+
+    // Auth header per platform scheme: bearer token, custom API-key header, or none.
+    const authHeaders = {};
+    const scheme = outbound.authScheme || "bearer";
+    if (scheme === "bearer") {
+      authHeaders.Authorization = `Bearer ${it.apiKey}`;
+    } else if (scheme === "apiKey") {
+      authHeaders[outbound.authHeader || "X-Api-Key"] = it.apiKey;
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
@@ -52,8 +58,9 @@ export async function pushStatus(platform, order, platformStatus) {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${it.apiKey}`,
+          ...authHeaders,
           ...(it.storeId ? { "X-Store-Id": it.storeId } : {}),
+          ...(outbound.extraHeaders || {}),
         },
         body: JSON.stringify({ [field]: mapped, externalId: order.externalId, orderNo: order.orderNo }),
         signal: controller.signal,

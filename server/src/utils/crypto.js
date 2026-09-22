@@ -50,3 +50,13 @@ export function safeEqual(a, b) {
   if (ba.length !== bb.length) return false;
   return crypto.timingSafeEqual(ba, bb);
 }
+
+// HMAC-SHA256 of a raw body (Buffer or string) with a secret, in the given
+// digest encoding ("hex" | "base64"). Used to verify delivery-platform webhooks
+// that sign the payload rather than sending a static shared secret.
+export function hmacSha256(rawBody, secret, encoding = "hex") {
+  return crypto
+    .createHmac("sha256", String(secret))
+    .update(rawBody ?? Buffer.alloc(0))
+    .digest(encoding);
+}
