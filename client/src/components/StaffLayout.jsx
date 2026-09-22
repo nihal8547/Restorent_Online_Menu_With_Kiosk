@@ -122,6 +122,7 @@ const NAV_CONFIG = {
     { to: "/admin/customers", label: "Customers", icon: "customers" },
     { to: "/admin/expenses", label: "Daily Cost", icon: "expenses" },
     { to: "/admin/reports", label: "Reports", icon: "reports" },
+    { to: "/admin/accounting", label: "Accounting", icon: "billing", badge: "Books" },
     { to: "/admin/settings", label: "Settings", icon: "settings" },
     { to: "/kitchen", label: "Kitchen Live", icon: "kitchen", badge: "Live" },
   ],

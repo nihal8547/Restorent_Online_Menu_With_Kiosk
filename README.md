@@ -145,6 +145,15 @@ delivery order in the same kitchen/billing pipeline. Requests must carry
 - **KOT auto-print** — Kitchen screen has an **Auto-print KOT** toggle; a new order prints an
   80mm thermal Kitchen Order Ticket automatically (plus a manual 🖨 per ticket).
 
+- **Accounting integration** — Admin → *Accounting*: a P&L summary (net sales, tax
+  collected, expenses, net profit), a balanced double-entry journal, and one-click exports
+  your accountant can import:
+  - **Sales CSV / Expenses CSV / Journal CSV** → Excel, QuickBooks, Zoho Books.
+  - **Tally XML** → imports directly into Tally as Sales & Payment vouchers.
+
+  API: `GET /api/accounting/summary`, `/journal`, `/export/{sales,expenses,journal}.csv`,
+  `/export/tally.xml` (all accept `?from=&to=`).
+
 ### Silent KOT printing (no browser dialog)
 
 Browsers show a print dialog by default. For fully automatic, dialog-free thermal printing,

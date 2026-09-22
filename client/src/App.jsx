@@ -26,6 +26,7 @@ import Expenses from "./pages/admin/Expenses.jsx";
 import Reports from "./pages/admin/Reports.jsx";
 import Waiters from "./pages/admin/Waiters.jsx";
 import Inventory from "./pages/admin/Inventory.jsx";
+import Accounting from "./pages/admin/Accounting.jsx";
 import AdminSettings from "./pages/admin/AdminSettings.jsx";
 
 export default function App() {
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="/admin/reports" element={<Reports />} />
         <Route path="/admin/waiters" element={<Waiters />} />
         <Route path="/admin/inventory" element={<Inventory />} />
+        <Route path="/admin/accounting" element={<Accounting />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>
 
