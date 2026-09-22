@@ -1,34 +1,15 @@
 import { prisma } from "../prisma.js";
-import { createOrder } from "../routes/orders.js";
-import { normalizePayload } from "../utils/platformAdapters.js";
-import { bestMenuItemMatch } from "../utils/nameMatch.js";
-
-// Record unmapped SKUs as suggestions with a best-guess menu item.
-async function recordSuggestions(platform, unmapped) {
-  if (!unmapped.length) return;
-  const items = await prisma.menuItem.findMany({ select: { id: true, name: true } });
-  for (const u of unmapped) {
-    if (!u.sku) continue;
-    const best = bestMenuItemMatch(u.name, items);
-    await prisma.platformSkuSuggestion.upsert({
-      where: { platform_sku: { platform, sku: String(u.sku) } },
-      update: {
-        ...(u.name && { name: u.name }),
-        ...(best && { suggestedMenuItemId: best.id }),
-        seenCount: { increment: 1 },
-      },
-      create: {
-        platform,
-        sku: String(u.sku),
-        name: u.name || null,
-        suggestedMenuItemId: best?.id || null,
-      },
-    });
-  }
-}
+import { createExternalOrder } from "../routes/orders.js";
+import { normalizePayload, platformTotal, platformRef } from "../utils/platformAdapters.js";
 
 /**
  * Ingest one delivery-platform order (from a webhook or a re-process).
+ *
+ * EXTERNAL model: the order is created directly from the platform's raw line
+ * items (name / price / qty) WITHOUT linking to the internal menu — no SKU
+ * mapping required. The order then appears in the Kitchen & Billing screens
+ * where staff run the platform lifecycle (Accept → Ready → Picked up).
+ *
  * Returns { status, ... } — never throws for expected cases.
  */
 export async function ingestPlatformOrder(platform, body) {
@@ -36,6 +17,7 @@ export async function ingestPlatformOrder(platform, body) {
   const externalId = norm.externalId;
   if (!externalId) return { status: 400, error: "externalId is required" };
 
+  // Idempotency: ignore duplicate deliveries of the same platform order.
   const existing = await prisma.platformOrder.findUnique({
     where: { platform_externalId: { platform, externalId } },
   });
@@ -44,46 +26,28 @@ export async function ingestPlatformOrder(platform, body) {
   }
   const log = existing || (await prisma.platformOrder.create({ data: { platform, externalId, payload: body } }));
 
-  // Resolve line items to menu items (by menuItemId, else by SKU mapping).
-  const skus = norm.items.filter((i) => !i.menuItemId && i.sku).map((i) => String(i.sku));
-  const maps = skus.length
-    ? await prisma.platformItemMap.findMany({ where: { platform, sku: { in: skus } } })
-    : [];
-  const skuToId = new Map(maps.map((m) => [m.sku, m.menuItemId]));
-
-  const cart = [];
-  const unmapped = [];
-  for (const it of norm.items) {
-    const menuItemId = it.menuItemId || skuToId.get(String(it.sku));
-    if (!menuItemId) unmapped.push({ sku: it.sku, name: it.name });
-    else cart.push({ menuItemId: Number(menuItemId), qty: it.qty, note: it.note });
+  if (!norm.items || norm.items.length === 0) {
+    return { status: 422, error: "Order has no items" };
   }
 
-  if (unmapped.length || cart.length === 0) {
-    await recordSuggestions(platform, unmapped);
-    return {
-      status: 422,
-      error: cart.length === 0 ? "No mappable items in order" : "Some items are not mapped",
-      unmappedSkus: unmapped.map((u) => u.sku),
-    };
-  }
-
-  const order = await createOrder(cart, {
-    type: "DELIVERY",
+  const order = await createExternalOrder(norm.items, {
     source: platform,
     externalId,
+    platformRef: platformRef(body),
     customerPhone: norm.customer?.phone || norm.delivery?.phone,
     note: norm.note,
     delivery: norm.delivery,
+    total: platformTotal(body),
   });
+
   await prisma.platformOrder.update({ where: { id: log.id }, data: { mappedOrderId: order.id } });
   return { status: 201, ok: true, orderNo: order.orderNo, orderId: order.id };
 }
 
 /**
- * Re-process previously failed (unmapped) orders for a platform — called after
- * the admin adds a mapping so pending orders flow through without a resend.
- * Returns the number of orders that became real orders.
+ * Re-process any platform orders that were logged but not turned into orders.
+ * With the external model this is normally a no-op (every order is created on
+ * arrival), kept for the Menu-Mapping approve flow to call safely.
  */
 export async function reprocessFailed(platform) {
   const failed = await prisma.platformOrder.findMany({

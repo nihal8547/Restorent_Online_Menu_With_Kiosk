@@ -55,6 +55,15 @@ export default function Kitchen() {
     await api.patch(`/orders/${order.id}/status`, { status });
   };
 
+  // Delivery-platform lifecycle action (external orders).
+  const platformAction = async (order, action) => {
+    try {
+      await api.patch(`/orders/${order.id}/platform`, { action });
+    } catch (e) {
+      setToast(e.message);
+    }
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -84,8 +93,17 @@ export default function Kitchen() {
               <span className="font-bold">{o.orderNo}</span>
               <StatusBadge value={o.status} />
             </div>
-            <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <TypeBadge value={o.type} />
+              {o.source !== "IN_HOUSE" && (
+                <span className="badge bg-fuchsia-100 font-semibold text-fuchsia-700">
+                  {o.source}
+                  {o.platformRef ? ` · ${o.platformRef}` : ""}
+                </span>
+              )}
+              {o.platformStatus && (
+                <span className="badge bg-slate-100 text-slate-600">{o.platformStatus}</span>
+              )}
               {o.table && <span>Table {o.table.tableNo}</span>}
               {o.placedBy && <span>· by {o.placedBy.name}</span>}
             </div>
@@ -105,22 +123,53 @@ export default function Kitchen() {
               {new Date(o.createdAt).toLocaleTimeString()} · {money(o.total)}
             </p>
 
-            <div className="mt-3 flex gap-2">
-              {NEXT[o.status] && (
-                <button className="btn-primary btn-sm flex-1" onClick={() => advance(o)}>
-                  {NEXT_LABEL[o.status]}
-                </button>
-              )}
-              <button className="btn-outline btn-sm" onClick={() => kot(o)} title="Print KOT">
-                🖨
-              </button>
-              {o.status !== "READY" && (
-                <button
-                  className="btn-outline btn-sm"
-                  onClick={() => api.patch(`/orders/${o.id}/status`, { status: "CANCELLED" })}
-                >
-                  Cancel
-                </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {o.source === "IN_HOUSE" ? (
+                <>
+                  {NEXT[o.status] && (
+                    <button className="btn-primary btn-sm flex-1" onClick={() => advance(o)}>
+                      {NEXT_LABEL[o.status]}
+                    </button>
+                  )}
+                  <button className="btn-outline btn-sm" onClick={() => kot(o)} title="Print KOT">
+                    🖨
+                  </button>
+                  {o.status !== "READY" && (
+                    <button
+                      className="btn-outline btn-sm"
+                      onClick={() => api.patch(`/orders/${o.id}/status`, { status: "CANCELLED" })}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </>
+              ) : (
+                /* Delivery-platform lifecycle actions */
+                <>
+                  {o.status === "NEW" && (
+                    <>
+                      <button className="btn-primary btn-sm flex-1" onClick={() => platformAction(o, "ACCEPT")}>
+                        Accept
+                      </button>
+                      <button className="btn-outline btn-sm text-red-600" onClick={() => platformAction(o, "REJECT")}>
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {o.status === "PREPARING" && (
+                    <button className="btn-primary btn-sm flex-1" onClick={() => platformAction(o, "READY")}>
+                      Mark Ready
+                    </button>
+                  )}
+                  {o.status === "READY" && (
+                    <button className="btn-primary btn-sm flex-1" onClick={() => platformAction(o, "PICKED_UP")}>
+                      Picked Up
+                    </button>
+                  )}
+                  <button className="btn-outline btn-sm" onClick={() => kot(o)} title="Print KOT">
+                    🖨
+                  </button>
+                </>
               )}
             </div>
           </div>

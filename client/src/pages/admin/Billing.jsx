@@ -294,6 +294,12 @@ export default function Billing() {
                   {/* Order Meta Badges */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
                     <TypeBadge value={o.type} />
+                    {o.source && o.source !== "IN_HOUSE" && (
+                      <span className="rounded-md bg-fuchsia-100 px-2 py-0.5 font-bold text-fuchsia-700 text-[11px]">
+                        {o.source}
+                        {o.platformRef ? ` · ${o.platformRef}` : ""} · Prepaid
+                      </span>
+                    )}
                     {o.table && (
                       <span className="rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-700 text-[11px]">
                         Table {o.table.tableNo}

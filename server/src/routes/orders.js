@@ -20,6 +20,80 @@ const orderInclude = {
   },
 };
 
+/**
+ * Create an EXTERNAL delivery-platform order — WITHOUT linking to the internal
+ * menu. Line items are stored as raw name/price/qty (menuItemId = null), so no
+ * SKU mapping is required. These orders flow straight into the Kitchen & Billing
+ * screens where staff run the platform lifecycle (Accept → Ready → Picked up).
+ *
+ * lines: [{ name, price, qty, note? }]
+ * opts:  { source, externalId, platformRef, customerPhone, note, delivery, total? }
+ */
+export async function createExternalOrder(lines, opts = {}) {
+  const items = (Array.isArray(lines) ? lines : [])
+    .filter((l) => l && (l.name || l.qty))
+    .map((l) => ({
+      menuItemId: null,
+      name: String(l.name || "Item").slice(0, 200),
+      price: Number(l.price || 0),
+      qty: Math.max(1, parseInt(l.qty, 10) || 1),
+      note: l.note ? String(l.note).slice(0, 200) : null,
+    }));
+  if (items.length === 0) {
+    const err = new Error("Order has no items");
+    err.status = 400;
+    throw err;
+  }
+
+  const subtotal = +items.reduce((s, i) => s + i.price * i.qty, 0).toFixed(2);
+  // Platform orders are prepaid & already taxed on the platform side.
+  const total = opts.total != null ? Number(opts.total) : subtotal;
+
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        type: "DELIVERY",
+        source: opts.source || "IN_HOUSE",
+        externalId: opts.externalId || null,
+        platformRef: opts.platformRef ? String(opts.platformRef) : null,
+        customerPhone: opts.customerPhone ? String(opts.customerPhone).trim() : null,
+        note: opts.note ? String(opts.note).slice(0, 500) : null,
+        subtotal,
+        tax: 0,
+        discount: 0,
+        total,
+        paymentStatus: "PAID", // prepaid via the platform
+        items: { create: items },
+        ...(opts.delivery && {
+          deliveryInfo: {
+            create: {
+              name: String(opts.delivery.name || "Customer").trim(),
+              phone: String(opts.delivery.phone || "").trim(),
+              street: String(opts.delivery.street || "").trim(),
+              buildingNo: String(opts.delivery.buildingNo || "").trim(),
+              room: opts.delivery.room ? String(opts.delivery.room).trim() : null,
+              zone: String(opts.delivery.zone || "").trim(),
+            },
+          },
+        }),
+      },
+    });
+    // Record a prepaid platform payment so it shows as collected in Billing.
+    await tx.payment.create({
+      data: { orderId: created.id, amount: total, mode: "ONLINE" },
+    });
+    return tx.order.update({
+      where: { id: created.id },
+      data: { orderNo: formatOrderNo(created.id) },
+      include: orderInclude,
+    });
+  });
+
+  await upsertCustomer(opts.customerPhone || opts.delivery?.phone, opts.delivery?.name, opts.delivery?.zone);
+  emitOrderEvent("order:new", order);
+  return order;
+}
+
 // Upsert a lightweight CRM customer record from a phone number.
 async function upsertCustomer(phone, name, zone) {
   if (!phone) return;
@@ -452,6 +526,49 @@ router.patch(
       res.json({ order });
     } catch (e) {
       if (e.status) return res.status(e.status).json({ error: e.message });
+      next(e);
+    }
+  }
+);
+
+// ---------- Platform delivery actions ----------
+// PATCH /api/orders/:id/platform  { action }
+// Runs the delivery-partner lifecycle on an external order. Each action maps to
+// a kitchen status and records the platform-side status; a best-effort outbound
+// push to the platform can be wired in later using the stored integration.
+const PLATFORM_ACTIONS = {
+  ACCEPT: { status: "PREPARING", platformStatus: "ACCEPTED" },
+  REJECT: { status: "CANCELLED", platformStatus: "REJECTED" },
+  READY: { status: "READY", platformStatus: "READY" },
+  PICKED_UP: { status: "SERVED", platformStatus: "PICKED_UP" },
+  OUT_FOR_DELIVERY: { status: "READY", platformStatus: "OUT_FOR_DELIVERY" },
+};
+
+router.patch(
+  "/:id/platform",
+  requireAuth,
+  requireRole("KITCHEN", "ADMIN", "CASHIER"),
+  async (req, res, next) => {
+    try {
+      const map = PLATFORM_ACTIONS[String(req.body?.action || "").toUpperCase()];
+      if (!map) return res.status(400).json({ error: "Invalid action" });
+
+      const existing = await prisma.order.findUnique({ where: { id: Number(req.params.id) } });
+      if (!existing) return res.status(404).json({ error: "Order not found" });
+      if (existing.source === "IN_HOUSE") {
+        return res.status(400).json({ error: "Not a delivery-platform order" });
+      }
+
+      const order = await prisma.order.update({
+        where: { id: existing.id },
+        data: { status: map.status, platformStatus: map.platformStatus },
+        include: orderInclude,
+      });
+      emitOrderEvent("order:updated", order);
+      // TODO (outbound): push map.platformStatus to the platform's API using the
+      // stored integration (getIntegration(order.source)) when their endpoint is known.
+      res.json({ order });
+    } catch (e) {
       next(e);
     }
   }

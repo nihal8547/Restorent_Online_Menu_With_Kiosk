@@ -40,9 +40,26 @@ function normItem(raw) {
     menuItemId: pick(raw, "menuItemId"), // already-mapped payloads (e.g. internal tests)
     // product name from the platform — used to auto-suggest a menu-item match.
     name: pick(raw, "name", "product_name", "productName", "item_name", "itemName", "title", "description") || null,
+    // unit price as charged by the platform (for external-order billing display).
+    price: Number(pick(raw, "unit_price", "unitPrice", "price", "amount", "item_price", "itemPrice") ?? 0) || 0,
     qty: Number(pick(raw, "quantity", "qty", "count") ?? 1) || 1,
     note: pick(raw, "special_instructions", "specialInstructions", "notes", "note", "remark", "comment") || null,
   };
+}
+
+// The platform's own order total, if provided (already includes their tax/fees).
+export function platformTotal(body) {
+  const t =
+    pick(body, "total", "order_total", "orderTotal", "grand_total", "grandTotal", "amount", "price.total") ?? null;
+  return t == null ? null : Number(t) || 0;
+}
+
+// The platform's human-readable order number/reference, if any.
+export function platformRef(body) {
+  return (
+    pick(body, "order_number", "orderNumber", "short_code", "shortCode", "display_id", "reference", "order_id", "orderId") ||
+    null
+  );
 }
 
 function normItems(raw) {

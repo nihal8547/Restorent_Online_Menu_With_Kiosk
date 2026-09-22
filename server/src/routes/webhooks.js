@@ -48,15 +48,11 @@ router.post("/:platform", async (req, res, next) => {
       return res.status(401).json({ error: "Invalid webhook signature" });
     }
 
-    // Translate, map SKUs and create the order (records auto-suggestions for
-    // any unmapped SKUs so the admin can approve them in one click).
+    // Create the order directly from the platform's line items (external model —
+    // no internal menu link). It appears in Kitchen & Billing immediately.
     const result = await ingestPlatformOrder(source, req.body || {});
     if (result.status >= 400) {
-      return res.status(result.status).json({
-        error: result.error,
-        unmappedSkus: result.unmappedSkus,
-        hint: `Open Admin → Menu Mapping to approve the suggested SKUs for ${source}.`,
-      });
+      return res.status(result.status).json({ error: result.error });
     }
     res.status(result.status).json(result);
   } catch (e) {
