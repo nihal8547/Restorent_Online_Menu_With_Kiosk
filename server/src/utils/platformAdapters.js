@@ -34,17 +34,40 @@ function fullName(...parts) {
   return parts.filter(Boolean).join(" ").trim();
 }
 
-// Normalise one line item from any of the common shapes.
+// Coerce a price that may be a number, a numeric string, or a nested object
+// like { amount: 32 } / { value: 32 } / { amount: 3200, ... } (cents handled by
+// the platform; we take the value as-is).
+function priceOf(raw) {
+  const v = pick(raw, "unit_price", "unitPrice", "price", "amount", "item_price", "itemPrice", "cost");
+  if (v == null) return 0;
+  if (typeof v === "object") return Number(pick(v, "amount", "value", "amount_decimal", "total")) || 0;
+  return Number(v) || 0;
+}
+
+// Collect modifier / add-on / option names so the kitchen sees them.
+function modifiersOf(raw) {
+  const mods = pick(raw, "modifiers", "options", "addons", "add_ons", "extras", "choices", "toppings");
+  if (!Array.isArray(mods)) return [];
+  return mods
+    .map((m) => (typeof m === "string" ? m : pick(m, "name", "title", "label", "option_name")))
+    .filter(Boolean);
+}
+
+// Normalise one line item from any of the common shapes. Never returns a blank
+// name (falls back to the SKU/code, then "Item") so nothing shows empty.
 function normItem(raw) {
+  const sku = pick(raw, "sku", "plu", "product_id", "productId", "item_id", "itemId", "pos_item_id", "posItemId", "code");
+  const name = pick(raw, "name", "product_name", "productName", "item_name", "itemName", "title", "description");
+  const baseNote = pick(raw, "special_instructions", "specialInstructions", "notes", "note", "remark", "comment");
+  const mods = modifiersOf(raw);
+  const note = [baseNote, mods.length ? `+ ${mods.join(", ")}` : ""].filter(Boolean).join(" ") || null;
   return {
-    sku: pick(raw, "sku", "plu", "product_id", "productId", "item_id", "itemId", "pos_item_id", "posItemId", "code"),
+    sku,
     menuItemId: pick(raw, "menuItemId"), // already-mapped payloads (e.g. internal tests)
-    // product name from the platform — used to auto-suggest a menu-item match.
-    name: pick(raw, "name", "product_name", "productName", "item_name", "itemName", "title", "description") || null,
-    // unit price as charged by the platform (for external-order billing display).
-    price: Number(pick(raw, "unit_price", "unitPrice", "price", "amount", "item_price", "itemPrice") ?? 0) || 0,
-    qty: Number(pick(raw, "quantity", "qty", "count") ?? 1) || 1,
-    note: pick(raw, "special_instructions", "specialInstructions", "notes", "note", "remark", "comment") || null,
+    name: name || (sku ? String(sku) : "Item"),
+    price: priceOf(raw),
+    qty: Math.max(1, Number(pick(raw, "quantity", "qty", "count", "units") ?? 1) || 1),
+    note,
   };
 }
 

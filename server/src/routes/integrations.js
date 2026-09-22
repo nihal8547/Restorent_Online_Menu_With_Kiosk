@@ -195,4 +195,31 @@ router.post("/simulate", ...adminOnly, async (req, res, next) => {
   }
 });
 
+// GET /api/integrations/payloads?platform=&limit=  — recent raw webhook payloads.
+// Lets you inspect exactly what a platform sent, to fine-tune the adapter field
+// mapping against real orders once you go live.
+router.get("/payloads", ...adminOnly, async (req, res, next) => {
+  try {
+    const where = {};
+    if (req.query.platform) where.platform = String(req.query.platform).toUpperCase();
+    const rows = await prisma.platformOrder.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Number(req.query.limit) || 20, 100),
+    });
+    res.json({
+      payloads: rows.map((r) => ({
+        id: r.id,
+        platform: r.platform,
+        externalId: r.externalId,
+        mappedOrderId: r.mappedOrderId,
+        createdAt: r.createdAt,
+        payload: r.payload, // raw JSON as received
+      })),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;
