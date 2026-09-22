@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useSettings } from "./store/settings.js";
 
 import StaffLayout, { RequireRole } from "./components/StaffLayout.jsx";
 
@@ -24,8 +25,15 @@ import Customers from "./pages/admin/Customers.jsx";
 import Expenses from "./pages/admin/Expenses.jsx";
 import Reports from "./pages/admin/Reports.jsx";
 import Waiters from "./pages/admin/Waiters.jsx";
+import AdminSettings from "./pages/admin/AdminSettings.jsx";
 
 export default function App() {
+  const fetchSettings = useSettings(s => s.fetchSettings);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
   return (
     <Routes>
       {/* Public / customer */}
@@ -77,6 +85,7 @@ export default function App() {
         <Route path="/admin/expenses" element={<Expenses />} />
         <Route path="/admin/reports" element={<Reports />} />
         <Route path="/admin/waiters" element={<Waiters />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

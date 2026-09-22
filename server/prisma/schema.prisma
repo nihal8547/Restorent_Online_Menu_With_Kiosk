@@ -91,8 +91,24 @@ model MenuItem {
   createdAt   DateTime @default(now())
 
   orderItems OrderItem[]
+  banners    Banner[]
 
   @@index([categoryId])
+}
+
+// ---------- Banners ----------
+
+model Banner {
+  id         Int      @id @default(autoincrement())
+  photoUrl   String
+  title      String?
+  subtitle   String?
+  active     Boolean  @default(true)
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  menuItemId Int?
+  createdAt  DateTime @default(now())
+
+  @@index([menuItemId])
 }
 
 // ---------- Tables & QR ----------
@@ -224,4 +240,12 @@ model PlatformOrder {
   createdAt     DateTime    @default(now())
 
   @@unique([platform, externalId])
+}
+
+// ---------- Settings ----------
+
+model Setting {
+  key   String @id
+  value String
+  updatedAt DateTime @updatedAt
 }

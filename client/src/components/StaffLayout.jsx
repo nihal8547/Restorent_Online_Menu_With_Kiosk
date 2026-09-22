@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../store/auth.js";
+import { useSettings } from "../store/settings.js";
+import WaiterAssistance from "./waiter/WaiterAssistance.jsx";
 import { BRAND } from "../config.js";
 
 // Clean SVG Icons for fast, zero-dependency, ultra-crisp rendering across all devices & POS
@@ -55,6 +57,12 @@ function Icon({ name, className = "w-5 h-5" }) {
     waiterOrders: (
       <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+    settings: (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
     logout: (
@@ -113,6 +121,7 @@ const NAV_CONFIG = {
     { to: "/admin/customers", label: "Customers", icon: "customers" },
     { to: "/admin/expenses", label: "Daily Cost", icon: "expenses" },
     { to: "/admin/reports", label: "Reports", icon: "reports" },
+    { to: "/admin/settings", label: "Settings", icon: "settings" },
     { to: "/kitchen", label: "Kitchen Live", icon: "kitchen", badge: "Live" },
   ],
   CASHIER: [
@@ -138,6 +147,7 @@ export function RequireRole({ roles, children }) {
 
 export default function StaffLayout() {
   const { user, logout } = useAuth();
+  const shopName = useSettings(s => s.shopName);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -224,7 +234,7 @@ export default function StaffLayout() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="display font-bold text-base sm:text-lg tracking-tight text-slate-900">
-                  {BRAND.name}
+                  {shopName}
                 </span>
                 <span className="hidden sm:inline-block rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
                   {user.role}
@@ -327,7 +337,7 @@ export default function StaffLayout() {
                 {BRAND.name.charAt(0)}
               </div>
               <div>
-                <span className="display font-bold text-base text-white">{BRAND.name}</span>
+                <span className="display font-bold text-base text-white">{shopName}</span>
                 <span className="ml-2 rounded bg-brand/20 px-1.5 py-0.5 text-[10px] font-bold text-brand-light uppercase">
                   {user.role}
                 </span>
@@ -465,6 +475,9 @@ export default function StaffLayout() {
           <span>More</span>
         </button>
       </div>
+
+      {/* Real-time Waiter Assistance Alerts */}
+      {(user.role === "WAITER" || user.role === "ADMIN") && <WaiterAssistance />}
     </div>
   );
 }

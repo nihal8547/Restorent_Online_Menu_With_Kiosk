@@ -1,4 +1,5 @@
 import React from "react";
+import { X } from "lucide-react";
 
 export function Spinner() {
   return (
@@ -36,8 +37,8 @@ export function Toast({ message, onClose }) {
   return (
     <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-gray-900 px-4 py-2 text-sm text-white shadow-lg">
       {message}
-      <button className="ml-3 text-gray-300" onClick={onClose}>
-        ✕
+      <button className="ml-3 text-gray-300 hover:text-white" onClick={onClose}>
+        <X className="w-3.5 h-3.5" />
       </button>
     </div>
   );

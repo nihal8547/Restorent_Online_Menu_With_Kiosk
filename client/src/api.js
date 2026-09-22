@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BRAND } from "./config.js";
+import { useSettings } from "./store/settings.js";
 
 // All API calls go through /api (Vite proxies to the backend in dev).
 export const api = axios.create({ baseURL: "/api" });
@@ -20,4 +20,7 @@ api.interceptors.response.use(
   }
 );
 
-export const money = (n) => `${BRAND.currency} ${Number(n || 0).toFixed(2)}`;
+export const money = (n) => {
+  const currency = useSettings.getState().currency;
+  return `${currency} ${Number(n || 0).toFixed(2)}`;
+};

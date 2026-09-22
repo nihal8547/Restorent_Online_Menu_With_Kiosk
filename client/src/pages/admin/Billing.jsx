@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
 import { Spinner, Empty, StatusBadge, TypeBadge, Toast } from "../../components/ui.jsx";
+import { Printer } from "lucide-react";
 
 export default function Billing() {
   const [orders, setOrders] = useState([]);
@@ -403,9 +404,9 @@ export default function Billing() {
                               )
                             }
                             title="Reprint receipt"
-                            className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition"
+                            className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition flex items-center justify-center"
                           >
-                            🖨️
+                            <Printer className="w-4 h-4" />
                           </button>
                         )}
                       </div>

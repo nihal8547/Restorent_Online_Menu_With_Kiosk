@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { Spinner, Toast } from "../../components/ui.jsx";
+import BannersManager from "../../components/admin/BannersManager.jsx";
 
 // Predefined quick image presets for fast food item creation
 const FOOD_PRESETS = [
@@ -23,6 +24,9 @@ export default function AdminMenu() {
   const [viewModel, setViewModel] = useState(() => {
     return localStorage.getItem("zafran_menu_view_model") || "card";
   });
+
+  // Admin Tab: ITEMS | BANNERS
+  const [activeAdminTab, setActiveAdminTab] = useState("ITEMS");
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,6 +165,25 @@ export default function AdminMenu() {
     }
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    setToast("Uploading image...");
+    try {
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setItemForm({ ...itemForm, photoUrl: data.url });
+      setToast("Image uploaded successfully");
+    } catch (err) {
+      setToast(err.response?.data?.error || err.message || "Failed to upload image");
+    }
+  };
+
   // Toggle Item Availability
   const toggleItem = async (it) => {
     try {
@@ -192,49 +215,77 @@ export default function AdminMenu() {
       {/* ------------------------------------------------------------- */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Menu Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Menu & Offers</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Manage your dishes, photos, prices, categories, and real-time stock availability.
+            Manage your dishes, photos, categories, and promotional banners.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Add Category Button */}
-          <button
-            onClick={() => setShowCategoryModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition active:scale-95"
-          >
-            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>+ Category</span>
-          </button>
+        {activeAdminTab === "ITEMS" && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Add Category Button */}
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition active:scale-95"
+            >
+              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>+ Category</span>
+            </button>
 
-          {/* Add New Item Button */}
-          <button
-            onClick={() =>
-              setItemForm({
-                categoryId: categories[0]?.id || "",
-                name: "",
-                description: "",
-                price: "",
-                photoUrl: "",
-                available: true,
-              })
-            }
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-dark px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-brand/20 hover:brightness-105 active:scale-95 transition"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Menu Item</span>
-          </button>
-        </div>
+            {/* Add New Item Button */}
+            <button
+              onClick={() =>
+                setItemForm({
+                  categoryId: categories[0]?.id || "",
+                  name: "",
+                  description: "",
+                  price: "",
+                  photoUrl: "",
+                  available: true,
+                })
+              }
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-dark px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-brand/20 hover:brightness-105 active:scale-95 transition"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add Menu Item</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* CONTROLS: Search, Filters & View Mode (Card vs Table Row)     */}
-      {/* ------------------------------------------------------------- */}
+      {/* Tabs */}
+      <div className="flex items-center gap-6 border-b border-slate-200">
+        <button
+          onClick={() => setActiveAdminTab("ITEMS")}
+          className={`pb-3 text-sm font-bold transition-colors relative ${
+            activeAdminTab === "ITEMS" ? "text-brand" : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Menu Items
+          {activeAdminTab === "ITEMS" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand rounded-t-full" />}
+        </button>
+        <button
+          onClick={() => setActiveAdminTab("BANNERS")}
+          className={`pb-3 text-sm font-bold transition-colors relative ${
+            activeAdminTab === "BANNERS" ? "text-brand" : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Banners & Offers
+          {activeAdminTab === "BANNERS" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand rounded-t-full" />}
+        </button>
+      </div>
+
+      {activeAdminTab === "BANNERS" ? (
+        <BannersManager allMenuItems={allItems} />
+      ) : (
+        <>
+          {/* ------------------------------------------------------------- */}
+          {/* CONTROLS: Search, Filters & View Mode (Card vs Table Row)     */}
+          {/* ------------------------------------------------------------- */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm space-y-3.5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {/* Search Input */}
@@ -752,15 +803,35 @@ export default function AdminMenu() {
               {/* Dish Image URL & Live Preview */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Dish Image (Photo URL)
+                  Dish Image
                 </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/... or paste image link"
-                  className="input"
-                  value={itemForm.photoUrl || ""}
-                  onChange={(e) => setItemForm({ ...itemForm, photoUrl: e.target.value })}
-                />
+                
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="url"
+                      placeholder="https://... or upload local image"
+                      className="input w-full"
+                      value={itemForm.photoUrl || ""}
+                      onChange={(e) => setItemForm({ ...itemForm, photoUrl: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="relative overflow-hidden">
+                    <button type="button" className="btn-outline shrink-0 !py-2 flex items-center gap-2 font-bold">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      onChange={handleImageUpload}
+                    />
+                  </div>
+                </div>
 
                 {/* Quick Presets */}
                 <div>
@@ -871,7 +942,9 @@ export default function AdminMenu() {
         </div>
       )}
 
-      <Toast message={toast} onClose={() => setToast("")} />
+      {toast && <Toast message={toast} onClose={() => setToast("")} />}
+        </>
+      )}
     </div>
   );
 }

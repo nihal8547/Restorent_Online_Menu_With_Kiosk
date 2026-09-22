@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../store/auth.js";
-import { BRAND } from "../config.js";
+import { useSettings } from "../store/settings.js";
 
 const HOME_BY_ROLE = {
   ADMIN: "/admin",
@@ -13,6 +13,7 @@ const HOME_BY_ROLE = {
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const shopName = useSettings(s => s.shopName);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -40,7 +41,7 @@ export default function Login() {
             🔐
           </div>
           <h1 className="display mt-3 text-xl font-semibold text-ink">Staff Portal</h1>
-          <p className="text-sm text-gray-500">{BRAND.name} · authorized access</p>
+          <p className="text-sm text-gray-500">{shopName} · authorized access</p>
         </div>
         <div className="space-y-3">
           <div>

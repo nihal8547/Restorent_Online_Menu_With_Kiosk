@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { useCart } from "../../store/cart.js";
+import { useSettings } from "../../store/settings.js";
 import { Spinner, Empty } from "../../components/ui.jsx";
 import { BRAND } from "../../config.js";
 
@@ -9,11 +10,18 @@ export default function Menu() {
   const { qrToken } = useParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const shopName = useSettings(s => s.shopName);
+  const shopTagline = useSettings(s => s.shopTagline);
 
   const [categories, setCategories] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [selectedBanner, setSelectedBanner] = useState(null);
   const [loading, setLoading] = useState(true);
   const [table, setTable] = useState(null);
   const [err, setErr] = useState("");
+
+  const [callingWaiter, setCallingWaiter] = useState(false);
+  const [waiterCalled, setWaiterCalled] = useState(false);
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -33,8 +41,15 @@ export default function Menu() {
         } else {
           sessionStorage.removeItem("ev_table");
         }
-        const { data } = await api.get("/menu");
-        setCategories(data.categories || []);
+        
+        // Fetch Categories & Banners in parallel
+        const [catRes, banRes] = await Promise.all([
+          api.get("/menu"),
+          api.get("/banners")
+        ]);
+        
+        setCategories(catRes.data.categories || []);
+        setBanners(banRes.data || []);
       } catch (e) {
         setErr(e.message);
       } finally {
@@ -85,6 +100,21 @@ export default function Menu() {
     return displayedCategories.reduce((acc, c) => acc + c.items.length, 0);
   }, [displayedCategories]);
 
+  const callWaiter = async () => {
+    if (!table || waiterCalled || callingWaiter) return;
+    setCallingWaiter(true);
+    try {
+      await api.post("/assistance", { tableNo: table.tableNo });
+      setWaiterCalled(true);
+      // Cooldown for 60 seconds
+      setTimeout(() => setWaiterCalled(false), 60000);
+    } catch (e) {
+      console.error("Failed to call waiter", e);
+    } finally {
+      setCallingWaiter(false);
+    }
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -97,7 +127,7 @@ export default function Menu() {
           {/* Brand & Table */}
           <div className="min-w-0">
             <Link to="/" className="display text-lg font-bold tracking-wide text-white truncate block">
-              {BRAND.name}
+              {shopName}
             </Link>
             {table ? (
               <p className="text-[11px] text-gold font-medium flex items-center gap-1">
@@ -187,6 +217,40 @@ export default function Menu() {
           </div>
         )}
       </header>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 1.5 OFFERS BANNER (Horizontal Scroll)                         */}
+      {/* ------------------------------------------------------------- */}
+      {banners.length > 0 && (
+        <div className="bg-white px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+            {banners.map((b) => (
+              <div 
+                key={b.id} 
+                className="shrink-0 snap-center w-[90%] sm:w-[320px] cursor-pointer"
+                onClick={() => setSelectedBanner(b)}
+              >
+                <div className="relative h-36 sm:h-44 w-full rounded-2xl overflow-hidden shadow-md">
+                  <img src={b.photoUrl} alt={b.title || "Offer"} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <div className="absolute bottom-3 left-3 text-white">
+                    {b.subtitle && <p className="text-xs font-bold uppercase tracking-wider text-brand-light drop-shadow-lg">{b.subtitle}</p>}
+                    {b.title && <p className="text-sm font-extrabold drop-shadow-lg">{b.title}</p>}
+                  </div>
+                  {b.menuItem && (
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-brand px-2.5 py-1 rounded-full text-[10px] font-black shadow-sm flex items-center gap-1">
+                      <span>ORDER NOW</span>
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* 2. STICKY CATEGORY NAVIGATION RAIL (Customer View)            */}
@@ -373,6 +437,82 @@ export default function Menu() {
             <span>{money(cart.subtotal())} →</span>
           </button>
         </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 5. BANNER CLICK MODAL (OFFER DETAILS & ADD TO CART)           */}
+      {/* ------------------------------------------------------------- */}
+      {selectedBanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white overflow-hidden shadow-2xl animate-fade-up">
+            <div className="relative h-48 w-full bg-slate-100">
+              <img src={selectedBanner.photoUrl} alt="Offer" className="h-full w-full object-cover" />
+              <button 
+                onClick={() => setSelectedBanner(null)}
+                className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-black/70 transition"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 text-center">
+              {selectedBanner.subtitle && <p className="text-xs font-bold uppercase tracking-wider text-brand mb-1">{selectedBanner.subtitle}</p>}
+              {selectedBanner.title && <h3 className="text-xl font-extrabold text-slate-900 mb-2">{selectedBanner.title}</h3>}
+              
+              {selectedBanner.menuItem ? (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <p className="font-bold text-slate-800 mb-1">{selectedBanner.menuItem.name}</p>
+                  <p className="text-xs text-slate-500 mb-4 px-2">{selectedBanner.menuItem.description || "Enjoy our special offer today!"}</p>
+                  
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-lg font-black text-brand">{money(selectedBanner.menuItem.price)}</span>
+                    <button 
+                      className="btn-primary flex-1 !rounded-xl font-bold shadow-md shadow-brand/20"
+                      onClick={() => {
+                        cart.add(selectedBanner.menuItem);
+                        setSelectedBanner(null);
+                      }}
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <p className="text-sm text-slate-500 mb-4">Visit us today to enjoy this special promotion!</p>
+                  <button className="btn-outline w-full !rounded-xl font-bold" onClick={() => setSelectedBanner(null)}>Close</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 6. CALL WAITER (ASSISTANCE) FLOATING BUTTON                   */}
+      {/* ------------------------------------------------------------- */}
+      {table && (
+        <button
+          onClick={callWaiter}
+          disabled={waiterCalled || callingWaiter}
+          className={`fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-all ${
+            waiterCalled 
+              ? "bg-emerald-500 text-white scale-95" 
+              : "bg-brand text-white hover:bg-brand-dark active:scale-95"
+          }`}
+          title="Call Waiter"
+        >
+          {waiterCalled ? (
+            <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          ) : callingWaiter ? (
+            <Spinner className="w-6 h-6 text-white" />
+          ) : (
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          )}
+        </button>
       )}
     </div>
   );

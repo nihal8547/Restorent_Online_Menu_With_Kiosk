@@ -16,6 +16,15 @@ import customerRoutes from "./routes/customers.js";
 import billRoutes from "./routes/bill.js";
 import webhookRoutes from "./routes/webhooks.js";
 import waiterRoutes from "./routes/waiters.js";
+import uploadRoutes from "./routes/upload.js";
+import bannerRoutes from "./routes/banners.js";
+import settingsRoutes from "./routes/settings.js";
+import assistanceRoutes from "./routes/assistance.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +49,13 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/bill", billRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/waiters", waiterRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/banners", bannerRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/assistance", assistanceRoutes);
+
+// Serve static files from the uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
 
 // 404 for unknown API routes
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));

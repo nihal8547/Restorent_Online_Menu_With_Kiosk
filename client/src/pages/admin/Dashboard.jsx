@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { Spinner } from "../../components/ui.jsx";
 import { subscribeGlobal } from "../../socket.js";
+import { UtensilsCrossed, QrCode, Receipt, BarChart3, AlertCircle } from "lucide-react";
 
 export default function Dashboard() {
   const [report, setReport] = useState(null);
@@ -56,26 +57,29 @@ export default function Dashboard() {
       </div>
 
       {pending > 0 && (
-        <Link to="/admin/billing" className="card mt-4 block bg-orange-50 p-4 text-orange-700">
-          {pending} order(s) awaiting payment → go to Billing
+        <Link to="/admin/billing" className="card mt-4 flex items-center gap-3 bg-orange-50 p-4 text-orange-700 hover:bg-orange-100 transition">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{pending} order(s) awaiting payment — go to Billing</span>
         </Link>
       )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <QuickLink to="/admin/menu" label="Manage Menu" icon="🍔" />
-        <QuickLink to="/admin/tables" label="Tables & QR" icon="🔳" />
-        <QuickLink to="/admin/billing" label="Billing" icon="🧾" />
-        <QuickLink to="/admin/reports" label="Reports" icon="📊" />
+        <QuickLink to="/admin/menu" label="Manage Menu" Icon={UtensilsCrossed} color="text-amber-600 bg-amber-50" />
+        <QuickLink to="/admin/tables" label="Tables & QR" Icon={QrCode} color="text-blue-600 bg-blue-50" />
+        <QuickLink to="/admin/billing" label="Billing / POS" Icon={Receipt} color="text-brand bg-brand/10" />
+        <QuickLink to="/admin/reports" label="Reports" Icon={BarChart3} color="text-emerald-600 bg-emerald-50" />
       </div>
     </div>
   );
 }
 
-function QuickLink({ to, label, icon }) {
+function QuickLink({ to, label, Icon, color }) {
   return (
-    <Link to={to} className="card flex items-center gap-3 p-4 hover:border-brand">
-      <span className="text-2xl">{icon}</span>
-      <span className="font-medium">{label}</span>
+    <Link to={to} className="card flex items-center gap-3 p-4 hover:border-brand hover:shadow-md transition-all">
+      <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+        <Icon className="w-5 h-5" />
+      </span>
+      <span className="font-semibold text-slate-800">{label}</span>
     </Link>
   );
 }

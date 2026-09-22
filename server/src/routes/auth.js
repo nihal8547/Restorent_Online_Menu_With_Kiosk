@@ -34,4 +34,35 @@ router.get("/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
+// PUT /api/auth/profile { name, username, password }
+router.put("/profile", requireAuth, async (req, res, next) => {
+  try {
+    const { name, username, password } = req.body || {};
+    const updateData = {};
+    if (name) updateData.name = name.trim();
+    if (username) updateData.username = username.trim();
+    if (password) {
+      updateData.passwordHash = await bcrypt.hash(password, 10);
+    }
+    
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: "No data to update" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: updateData
+    });
+
+    res.json({
+      user: { id: updated.id, name: updated.name, username: updated.username, role: updated.role }
+    });
+  } catch (e) {
+    if (e.code === 'P2002') {
+      return res.status(400).json({ error: "Username already exists" });
+    }
+    next(e);
+  }
+});
+
 export default router;

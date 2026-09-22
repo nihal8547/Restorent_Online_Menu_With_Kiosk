@@ -3,6 +3,7 @@ import { useParams, Link, useSearchParams } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { Spinner } from "../../components/ui.jsx";
 import { watchOrder } from "../../socket.js";
+import { Printer, Receipt, CheckCircle } from "lucide-react";
 
 export default function BillView() {
   const { orderToken } = useParams();
@@ -65,7 +66,9 @@ export default function BillView() {
   if (!state.paid) {
     return (
       <div className="mx-auto max-w-md px-4 py-10 text-center">
-        <div className="text-5xl">🧾</div>
+        <div className="flex justify-center text-gray-400 mb-2">
+          <Receipt className="w-12 h-12" />
+        </div>
         <h1 className="mt-3 text-xl font-bold">Order {state.orderNo}</h1>
         <p className="mt-1 text-sm text-gray-500">Status: {state.status}</p>
         {merged && (
@@ -93,8 +96,12 @@ export default function BillView() {
       <div ref={receiptRef} className="receipt-wrapper card p-5">
         {/* Header */}
         <div className="receipt-header text-center">
-          <div className="text-3xl print:hidden">✅</div>
-          <div className="hidden print:block text-2xl font-bold tracking-wide">🍽️ RECEIPT</div>
+          <div className="flex justify-center text-emerald-500 mb-2 print:hidden">
+            <CheckCircle className="w-10 h-10" />
+          </div>
+          <div className="hidden print:flex items-center justify-center gap-2 text-2xl font-bold tracking-wide">
+            <Receipt className="w-6 h-6" /> RECEIPT
+          </div>
           <h1 className="mt-1 text-xl font-bold">Payment Received</h1>
           <p className="text-sm text-gray-500">{b.orderNo}</p>
           {b.table && <p className="text-xs text-gray-400">Table {b.table}</p>}
@@ -140,17 +147,24 @@ export default function BillView() {
       </div>
 
       {/* ── ACTION BUTTONS (hidden on print) ── */}
-      <div className="no-print mt-5 flex gap-2">
+      <div className="no-print px-5 pb-5 flex flex-col gap-2 mt-5">
         <button
           onClick={handlePrint}
-          className="btn-outline flex-1 flex items-center justify-center gap-2"
+          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition"
         >
-          🖨️ Print Receipt
+          <Printer className="w-4 h-4" />
+          Print Receipt
         </button>
-        <Link to="/menu" className="btn-outline flex-1 text-center">
-          Order more
+        <Link
+          to="/menu"
+          className="btn-primary w-full text-center"
+        >
+          Order More
         </Link>
-        <Link to="/history" className="btn-primary flex-1 text-center">
+        <Link
+          to="/history"
+          className="btn-outline w-full text-center"
+        >
           My orders
         </Link>
       </div>
