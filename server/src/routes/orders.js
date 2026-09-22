@@ -99,19 +99,120 @@ export async function createOrder(cart, opts = {}) {
   return order;
 }
 
+/**
+ * Find the current OPEN (running-tab) dine-in order for a table:
+ * an order that is dine-in, not cancelled and not yet paid. That is the bill
+ * that further orders for the same table attach to.
+ */
+export function findOpenTableOrder(tableId) {
+  return prisma.order.findFirst({
+    where: {
+      tableId,
+      type: "DINE_IN",
+      paymentStatus: "PENDING",
+      status: { not: "CANCELLED" },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/**
+ * Append items to an existing open order (running tab), recompute totals and
+ * re-open it for the kitchen if it had already been served/ready.
+ */
+export async function appendItemsToOrder(open, cart, opts = {}) {
+  const resolved = await resolveCartItems(cart);
+
+  const order = await prisma.$transaction(async (tx) => {
+    await tx.orderItem.createMany({
+      data: resolved.map((r) => ({
+        orderId: open.id,
+        menuItemId: r.menuItemId,
+        name: r.name,
+        price: r.price,
+        qty: r.qty,
+        note: r.note,
+      })),
+    });
+    const items = await tx.orderItem.findMany({ where: { orderId: open.id } });
+    const totals = computeTotals(
+      items.map((i) => ({ price: Number(i.price), qty: i.qty })),
+      open.discount
+    );
+    // If the previous round was already Ready/Served, bring it back to NEW so
+    // the kitchen sees the newly added items.
+    const status = open.status === "READY" || open.status === "SERVED" ? "NEW" : open.status;
+    const mergedNote = opts.note
+      ? [open.note, String(opts.note).slice(0, 200)].filter(Boolean).join(" | ")
+      : open.note;
+
+    return tx.order.update({
+      where: { id: open.id },
+      data: {
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total,
+        status,
+        note: mergedNote ? mergedNote.slice(0, 500) : null,
+        ...(opts.customerPhone && !open.customerPhone && {
+          customerPhone: String(opts.customerPhone).trim(),
+        }),
+      },
+      include: orderInclude,
+    });
+  });
+
+  emitOrderEvent("order:updated", order);
+  return order;
+}
+
+/** Resolve a dine-in table from a QR token or a typed table number. */
+async function resolveDineInTable({ tableToken, tableNo }) {
+  if (tableToken) {
+    const t = await prisma.restaurantTable.findUnique({ where: { qrToken: tableToken } });
+    if (!t || !t.active) {
+      const e = new Error("Invalid table QR");
+      e.status = 400;
+      throw e;
+    }
+    return t.id;
+  }
+  if (tableNo !== undefined && tableNo !== null && String(tableNo).trim() !== "") {
+    const t = await prisma.restaurantTable.findUnique({ where: { tableNo: String(tableNo).trim() } });
+    if (!t || !t.active) {
+      const e = new Error(`Table "${tableNo}" not found`);
+      e.status = 400;
+      throw e;
+    }
+    return t.id;
+  }
+  const e = new Error("A table (QR or table number) is required for dine-in");
+  e.status = 400;
+  throw e;
+}
+
 // ---------- Public: place an order (customer self-order) ----------
-// POST /api/orders  { type, tableToken?, cart, note?, delivery? }
+// POST /api/orders  { type, tableToken?, tableNo?, cart, note?, delivery? }
 router.post("/", async (req, res, next) => {
   try {
-    const { type, tableToken, cart, note, delivery, customerPhone } = req.body || {};
+    const { type, tableToken, tableNo, cart, note, delivery, customerPhone } = req.body || {};
     const orderType = type || (tableToken ? "DINE_IN" : "TAKEAWAY");
 
     let tableId = null;
     if (orderType === "DINE_IN") {
-      if (!tableToken) return res.status(400).json({ error: "Table QR is required for dine-in" });
-      const table = await prisma.restaurantTable.findUnique({ where: { qrToken: tableToken } });
-      if (!table || !table.active) return res.status(400).json({ error: "Invalid table" });
-      tableId = table.id;
+      tableId = await resolveDineInTable({ tableToken, tableNo });
+
+      // Running tab: if this table already has an open (unpaid) bill, attach to it.
+      const open = await findOpenTableOrder(tableId);
+      if (open) {
+        const order = await appendItemsToOrder(open, cart, { note, customerPhone });
+        return res.status(200).json({
+          orderNo: order.orderNo,
+          orderToken: order.orderToken,
+          status: order.status,
+          merged: true,
+        });
+      }
     }
 
     if (orderType === "DELIVERY") {
@@ -135,6 +236,7 @@ router.post("/", async (req, res, next) => {
       orderNo: order.orderNo,
       orderToken: order.orderToken,
       status: order.status,
+      merged: false,
     });
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
@@ -151,6 +253,16 @@ router.post("/staff", requireAuth, requireRole("WAITER", "ADMIN", "CASHIER"), as
     if (orderType === "DINE_IN" && !tableId) {
       return res.status(400).json({ error: "tableId is required for dine-in" });
     }
+
+    // Running tab: attach to the table's open bill if one exists.
+    if (orderType === "DINE_IN") {
+      const open = await findOpenTableOrder(Number(tableId));
+      if (open) {
+        const order = await appendItemsToOrder(open, cart, { note, customerPhone });
+        return res.status(200).json({ order, merged: true });
+      }
+    }
+
     const order = await createOrder(cart, {
       type: orderType,
       tableId: tableId ? Number(tableId) : null,
@@ -159,7 +271,7 @@ router.post("/staff", requireAuth, requireRole("WAITER", "ADMIN", "CASHIER"), as
       note,
       delivery: orderType === "DELIVERY" ? delivery : null,
     });
-    res.status(201).json({ order });
+    res.status(201).json({ order, merged: false });
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     next(e);
