@@ -72,7 +72,11 @@ export default function Kitchen() {
   // Delivery-platform lifecycle action (external orders).
   const platformAction = async (order, action) => {
     try {
-      await api.patch(`/orders/${order.id}/platform`, { action });
+      const { data } = await api.patch(`/orders/${order.id}/platform`, { action });
+      const ob = data.outbound;
+      if (ob && !ob.ok && !ob.skipped) {
+        setToast(`${order.source}: status updated locally, but platform push failed (${ob.error || ob.httpStatus})`);
+      }
       load();
     } catch (e) {
       setToast(e.message);

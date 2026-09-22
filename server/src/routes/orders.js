@@ -3,6 +3,7 @@ import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { resolveCartItems, computeTotals, formatOrderNo, applyStockForSale } from "../utils/order.js";
 import { getTaxRate } from "../utils/settings.js";
+import { pushStatus } from "../services/deliveryOutbound.js";
 import { emitOrderEvent, emitToOrder } from "../socket.js";
 
 const router = Router();
@@ -565,9 +566,11 @@ router.patch(
         include: orderInclude,
       });
       emitOrderEvent("order:updated", order);
-      // TODO (outbound): push map.platformStatus to the platform's API using the
-      // stored integration (getIntegration(order.source)) when their endpoint is known.
-      res.json({ order });
+
+      // Outbound: tell the platform about the new status (best-effort, never
+      // blocks the local update). Result is returned so the UI can flag failures.
+      const outbound = await pushStatus(order.source, order, map.platformStatus);
+      res.json({ order, outbound });
     } catch (e) {
       next(e);
     }
