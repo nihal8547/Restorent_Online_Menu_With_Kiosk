@@ -131,6 +131,33 @@ delivery order in the same kitchen/billing pipeline. Requests must carry
 (idempotent). Map each platform's real payload shape to this normalised body in
 `server/src/routes/webhooks.js`.
 
+## Inventory, tax & KOT (POS features)
+
+- **Item sale counts** — Admin → *Inventory* → *Sale Count* shows total units sold and
+  revenue per item (all-time). API: `GET /api/reports/top-items`.
+- **Inventory / stock** — Admin → *Inventory*: toggle stock tracking per item, restock,
+  record waste/adjustments, low-stock & out-of-stock alerts. Stock auto-decrements on every
+  paid/placed order and blocks over-ordering. API: `GET/PUT/POST /api/inventory/*`.
+- **Fiscal / tax compliance** — Admin → *Settings* → *Tax & Invoice*: set business name,
+  address, tax registration number (TRN/VAT no.), tax %, label and invoice prefix. Tax is
+  then applied to every order and each paid order receives a **sequential invoice number**;
+  the customer receipt renders as a compliant **tax invoice**.
+- **KOT auto-print** — Kitchen screen has an **Auto-print KOT** toggle; a new order prints an
+  80mm thermal Kitchen Order Ticket automatically (plus a manual 🖨 per ticket).
+
+### Silent KOT printing (no browser dialog)
+
+Browsers show a print dialog by default. For fully automatic, dialog-free thermal printing,
+launch the kitchen screen in Chrome/Chromium **kiosk-printing** mode (prints to the default
+printer silently):
+
+```bash
+chromium --kiosk-printing --app=https://your-domain/kitchen
+```
+
+Set the thermal (80mm) printer as the machine's default printer. With this flag, enabling
+*Auto-print KOT* prints each new order's ticket with no dialog.
+
 ## Security notes / production checklist
 
 - Prices are always taken from the database — client-supplied prices are ignored.

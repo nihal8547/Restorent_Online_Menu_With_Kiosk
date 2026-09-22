@@ -90,10 +90,32 @@ model MenuItem {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
 
-  orderItems OrderItem[]
-  banners    Banner[]
+  // Inventory / stock management
+  trackStock Boolean @default(false) // when true, stockQty is enforced & decremented on sale
+  stockQty   Int     @default(0)
+  lowStockAt Int     @default(5) // low-stock alert threshold
+
+  orderItems     OrderItem[]
+  banners        Banner[]
+  stockMovements StockMovement[]
 
   @@index([categoryId])
+}
+
+// ---------- Inventory movement log ----------
+
+model StockMovement {
+  id         Int      @id @default(autoincrement())
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItemId Int
+  change     Int // +ve = stock in / adjustment up, -ve = sale / adjustment down
+  balance    Int // resulting stock after this movement
+  reason     String // SALE | RESTOCK | ADJUST | WASTE
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([menuItemId])
+  @@index([createdAt])
 }
 
 // ---------- Banners ----------
@@ -129,6 +151,7 @@ model Order {
   id            Int           @id @default(autoincrement())
   orderNo       String        @unique @default("")
   orderToken    String        @unique @default(cuid()) // used for public bill link
+  invoiceNo     String?       @unique // fiscal invoice number, assigned when paid
   type          OrderType     @default(DINE_IN)
   status        OrderStatus   @default(NEW)
   source        OrderSource   @default(IN_HOUSE)

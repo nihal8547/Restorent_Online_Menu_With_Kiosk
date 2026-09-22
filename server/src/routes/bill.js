@@ -7,6 +7,7 @@ const router = Router();
 function publicBill(order) {
   return {
     orderNo: order.orderNo,
+    invoiceNo: order.invoiceNo || null,
     orderToken: order.orderToken,
     type: order.type,
     status: order.status,

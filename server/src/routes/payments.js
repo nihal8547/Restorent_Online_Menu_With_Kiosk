@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { emitOrderEvent, emitToOrder, emitGlobal } from "../socket.js";
+import { getTaxRate, nextInvoiceNo } from "../utils/settings.js";
 
 const router = Router();
 const billing = [requireAuth, requireRole("CASHIER", "ADMIN")];
@@ -20,14 +21,18 @@ router.post("/", ...billing, async (req, res, next) => {
     });
     if (!order) return res.status(404).json({ error: "Order not found" });
 
+    const taxRate = await getTaxRate();
+
     const result = await prisma.$transaction(async (tx) => {
-      // optional last-minute discount adjustment
+      // optional last-minute discount adjustment (recompute tax on the discounted base)
       let current = order;
       if (discount !== undefined && Number(discount) !== Number(order.discount)) {
-        const newTotal = Math.max(0, Number(order.subtotal) + Number(order.tax) - Number(discount));
+        const taxable = Math.max(0, Number(order.subtotal) - Number(discount));
+        const newTax = +(taxable * taxRate).toFixed(2);
+        const newTotal = +(taxable + newTax).toFixed(2);
         current = await tx.order.update({
           where: { id: order.id },
-          data: { discount: Number(discount), total: newTotal },
+          data: { discount: Number(discount), tax: newTax, total: newTotal },
           include: { payments: true },
         });
       }
@@ -48,9 +53,15 @@ router.post("/", ...billing, async (req, res, next) => {
       const paid = Number(paidAgg._sum.amount || 0);
       const fullyPaid = paid + 1e-9 >= Number(current.total);
 
+      // Assign a sequential fiscal invoice number the first time it is fully paid.
+      let invoiceNo = current.invoiceNo;
+      if (fullyPaid && !invoiceNo) {
+        invoiceNo = await nextInvoiceNo(tx);
+      }
+
       return tx.order.update({
         where: { id: current.id },
-        data: { paymentStatus: fullyPaid ? "PAID" : "PENDING" },
+        data: { paymentStatus: fullyPaid ? "PAID" : "PENDING", invoiceNo },
         include: {
           items: true,
           payments: {

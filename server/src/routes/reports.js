@@ -116,4 +116,61 @@ router.get("/range", ...adminOnly, async (req, res, next) => {
   }
 });
 
+// GET /api/reports/top-items?from=&to=  — total units sold & revenue per item.
+// No date params → all-time totals. Grouped by the live menu item.
+router.get("/top-items", ...adminOnly, async (req, res, next) => {
+  try {
+    const where = { order: { paymentStatus: "PAID" } };
+    if (req.query.from || req.query.to) {
+      const from = req.query.from ? new Date(req.query.from) : new Date(0);
+      const to = req.query.to ? new Date(req.query.to) : new Date();
+      from.setHours(0, 0, 0, 0);
+      to.setHours(23, 59, 59, 999);
+      where.order = { paymentStatus: "PAID", createdAt: { gte: from, lte: to } };
+    }
+
+    const grouped = await prisma.orderItem.groupBy({
+      by: ["menuItemId"],
+      where,
+      _sum: { qty: true },
+    });
+
+    // Resolve current names/prices and compute revenue per item.
+    const ids = grouped.map((g) => g.menuItemId);
+    const items = await prisma.menuItem.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, price: true, stockQty: true, trackStock: true },
+    });
+    const byId = new Map(items.map((m) => [m.id, m]));
+
+    // Revenue from snapshot prices in order_items (accurate historical revenue).
+    const revenueRows = await prisma.orderItem.findMany({
+      where,
+      select: { menuItemId: true, qty: true, price: true },
+    });
+    const revenueById = {};
+    for (const r of revenueRows) {
+      revenueById[r.menuItemId] = (revenueById[r.menuItemId] || 0) + Number(r.price) * r.qty;
+    }
+
+    const rows = grouped
+      .map((g) => {
+        const item = byId.get(g.menuItemId);
+        return {
+          menuItemId: g.menuItemId,
+          name: item?.name || "(deleted item)",
+          soldQty: g._sum.qty || 0,
+          revenue: +(revenueById[g.menuItemId] || 0).toFixed(2),
+          stockQty: item?.trackStock ? item.stockQty : null,
+        };
+      })
+      .sort((a, b) => b.soldQty - a.soldQty);
+
+    const totalUnits = rows.reduce((s, r) => s + r.soldQty, 0);
+    res.json({ rows, totalUnits });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;

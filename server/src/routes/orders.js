@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
-import { resolveCartItems, computeTotals, formatOrderNo } from "../utils/order.js";
+import { resolveCartItems, computeTotals, formatOrderNo, applyStockForSale } from "../utils/order.js";
+import { getTaxRate } from "../utils/settings.js";
 import { emitOrderEvent, emitToOrder } from "../socket.js";
 
 const router = Router();
@@ -46,9 +47,11 @@ async function upsertCustomer(phone, name, zone) {
  */
 export async function createOrder(cart, opts = {}) {
   const resolved = await resolveCartItems(cart);
+  const taxRate = await getTaxRate();
   const totals = computeTotals(
     resolved.map((r) => ({ price: Number(r.price), qty: r.qty })),
-    opts.discount || 0
+    opts.discount || 0,
+    taxRate
   );
 
   const order = await prisma.$transaction(async (tx) => {
@@ -88,6 +91,8 @@ export async function createOrder(cart, opts = {}) {
         }),
       },
     });
+    // Inventory: decrement stock for tracked items.
+    await applyStockForSale(tx, resolved);
     // set human readable order number now that we have the id
     return tx.order.update({
       where: { id: created.id },
@@ -127,6 +132,7 @@ export function findOpenTableOrder(tableId) {
  */
 export async function appendItemsToOrder(open, cart, opts = {}) {
   const resolved = await resolveCartItems(cart);
+  const taxRate = await getTaxRate();
 
   const order = await prisma.$transaction(async (tx) => {
     await tx.orderItem.createMany({
@@ -139,10 +145,12 @@ export async function appendItemsToOrder(open, cart, opts = {}) {
         note: r.note,
       })),
     });
+    await applyStockForSale(tx, resolved);
     const items = await tx.orderItem.findMany({ where: { orderId: open.id } });
     const totals = computeTotals(
       items.map((i) => ({ price: Number(i.price), qty: i.qty })),
-      open.discount
+      open.discount,
+      taxRate
     );
     // If the previous round was already Ready/Served, bring it back to NEW so
     // the kitchen sees the newly added items.
@@ -407,9 +415,11 @@ router.patch(
         return res.status(400).json({ error: "Cannot edit a paid order" });
       }
       const resolved = await resolveCartItems(cart);
+      const taxRate = await getTaxRate();
       const totals = computeTotals(
         resolved.map((r) => ({ price: Number(r.price), qty: r.qty })),
-        discount ?? existing.discount
+        discount ?? existing.discount,
+        taxRate
       );
       const order = await prisma.$transaction(async (tx) => {
         await tx.orderItem.deleteMany({ where: { orderId: id } });

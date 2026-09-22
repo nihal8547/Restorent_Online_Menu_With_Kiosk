@@ -14,7 +14,16 @@ export default function BillView() {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [printed, setPrinted] = useState(false);
+  const [fiscal, setFiscal] = useState({});
   const receiptRef = useRef(null);
+
+  // Load business / tax settings for the fiscal invoice header.
+  useEffect(() => {
+    api
+      .get("/settings")
+      .then(({ data }) => setFiscal(data || {}))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -103,7 +112,22 @@ export default function BillView() {
             <Receipt className="w-6 h-6" /> RECEIPT
           </div>
           <h1 className="mt-1 text-xl font-bold">Payment Received</h1>
-          <p className="text-sm text-gray-500">{b.orderNo}</p>
+
+          {/* Fiscal / tax business header */}
+          {(fiscal.businessName || fiscal.taxNumber) && (
+            <div className="mt-2 text-xs text-gray-600">
+              {fiscal.businessName && <p className="font-semibold text-gray-800">{fiscal.businessName}</p>}
+              {fiscal.businessAddress && <p>{fiscal.businessAddress}</p>}
+              {fiscal.taxNumber && <p>{fiscal.taxLabel || "Tax"} Reg. No: {fiscal.taxNumber}</p>}
+            </div>
+          )}
+
+          {b.invoiceNo && (
+            <p className="mt-2 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold tracking-wide text-gray-700">
+              TAX INVOICE · {b.invoiceNo}
+            </p>
+          )}
+          <p className="mt-1 text-sm text-gray-500">{b.orderNo}</p>
           {b.table && <p className="text-xs text-gray-400">Table {b.table}</p>}
           <p className="mt-1 hidden print:block text-xs text-gray-400">
             {new Date(b.paidAt).toLocaleString()}
@@ -128,8 +152,13 @@ export default function BillView() {
         {/* Totals */}
         <div className="mt-3 space-y-1 border-t border-dashed border-gray-300 pt-3 text-sm">
           <Row label="Subtotal" value={money(b.subtotal)} />
-          {b.tax > 0 && <Row label="Tax" value={money(b.tax)} />}
           {b.discount > 0 && <Row label="Discount" value={`− ${money(b.discount)}`} />}
+          {b.tax > 0 && (
+            <Row
+              label={`${fiscal.taxLabel || "Tax"}${fiscal.taxRate ? ` (${fiscal.taxRate}%)` : ""}`}
+              value={money(b.tax)}
+            />
+          )}
           <div className="flex justify-between pt-1 text-base font-bold">
             <span>Total</span>
             <span className="text-brand">{money(b.total)}</span>

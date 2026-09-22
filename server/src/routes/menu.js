@@ -84,7 +84,8 @@ router.delete("/admin/categories/:id", ...adminOnly, async (req, res, next) => {
 
 router.post("/admin/items", ...adminOnly, async (req, res, next) => {
   try {
-    const { categoryId, name, description, price, photoUrl, available, sortOrder } = req.body || {};
+    const { categoryId, name, description, price, photoUrl, available, sortOrder, trackStock, stockQty, lowStockAt } =
+      req.body || {};
     if (!categoryId || !name || price === undefined) {
       return res.status(400).json({ error: "categoryId, name and price are required" });
     }
@@ -97,6 +98,9 @@ router.post("/admin/items", ...adminOnly, async (req, res, next) => {
         photoUrl: photoUrl || null,
         available: available !== false,
         sortOrder: Number(sortOrder) || 0,
+        trackStock: !!trackStock,
+        stockQty: Math.max(0, Number(stockQty) || 0),
+        ...(lowStockAt !== undefined && { lowStockAt: Math.max(0, Number(lowStockAt) || 0) }),
       },
     });
     res.status(201).json({ item });
@@ -108,7 +112,8 @@ router.post("/admin/items", ...adminOnly, async (req, res, next) => {
 router.put("/admin/items/:id", ...adminOnly, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const { categoryId, name, description, price, photoUrl, available, sortOrder } = req.body || {};
+    const { categoryId, name, description, price, photoUrl, available, sortOrder, trackStock, stockQty, lowStockAt } =
+      req.body || {};
     const item = await prisma.menuItem.update({
       where: { id },
       data: {
@@ -119,6 +124,9 @@ router.put("/admin/items/:id", ...adminOnly, async (req, res, next) => {
         ...(photoUrl !== undefined && { photoUrl: photoUrl || null }),
         ...(available !== undefined && { available: !!available }),
         ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) || 0 }),
+        ...(trackStock !== undefined && { trackStock: !!trackStock }),
+        ...(stockQty !== undefined && { stockQty: Math.max(0, Number(stockQty) || 0) }),
+        ...(lowStockAt !== undefined && { lowStockAt: Math.max(0, Number(lowStockAt) || 0) }),
       },
     });
     res.json({ item });

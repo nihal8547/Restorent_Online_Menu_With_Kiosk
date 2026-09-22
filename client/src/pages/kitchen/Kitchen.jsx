@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { api, money } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
-import { Spinner, Empty, StatusBadge, TypeBadge } from "../../components/ui.jsx";
+import { Spinner, Empty, StatusBadge, TypeBadge, Toast } from "../../components/ui.jsx";
+import { printKOT } from "../../utils/kot.js";
+import { useSettings } from "../../store/settings.js";
 
 const NEXT = { NEW: "PREPARING", PREPARING: "READY", READY: "SERVED" };
 const NEXT_LABEL = { NEW: "Start Preparing", PREPARING: "Mark Ready", READY: "Mark Served" };
@@ -9,6 +11,13 @@ const NEXT_LABEL = { NEW: "Start Preparing", PREPARING: "Mark Ready", READY: "Ma
 export default function Kitchen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState("");
+  const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem("kot_autoprint") === "1");
+  const autoPrintRef = useRef(autoPrint);
+  useEffect(() => {
+    autoPrintRef.current = autoPrint;
+    localStorage.setItem("kot_autoprint", autoPrint ? "1" : "0");
+  }, [autoPrint]);
 
   const load = useCallback(async () => {
     const { data } = await api.get("/orders", { params: { status: "NEW,PREPARING,READY", today: 1 } });
@@ -20,6 +29,11 @@ export default function Kitchen() {
     load();
   }, [load]);
 
+  const kot = (order) => {
+    const ok = printKOT(order, useSettings.getState().shopName);
+    if (!ok) setToast("Popup blocked — allow popups to print KOT");
+  };
+
   // Realtime updates
   useEffect(() => {
     const upsert = (order) =>
@@ -28,7 +42,11 @@ export default function Kitchen() {
         const active = ["NEW", "PREPARING", "READY"].includes(order.status);
         return active ? [order, ...others] : others;
       });
-    return subscribeOrders("kitchen", { onNew: upsert, onUpdated: upsert });
+    const onNew = (order) => {
+      upsert(order);
+      if (autoPrintRef.current) printKOT(order, useSettings.getState().shopName);
+    };
+    return subscribeOrders("kitchen", { onNew, onUpdated: upsert });
   }, []);
 
   const advance = async (order) => {
@@ -41,11 +59,20 @@ export default function Kitchen() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold">Kitchen Display</h1>
-        <button className="btn-outline btn-sm" onClick={load}>
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoPrint((v) => !v)}
+            className={`btn-sm rounded-lg px-3 py-1.5 font-medium ${autoPrint ? "bg-emerald-600 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+            title="Auto-print a KOT ticket when a new order arrives"
+          >
+            🖨 Auto-print KOT: {autoPrint ? "ON" : "OFF"}
+          </button>
+          <button className="btn-outline btn-sm" onClick={load}>
+            Refresh
+          </button>
+        </div>
       </div>
 
       {orders.length === 0 && <Empty>No active orders. New orders will appear here automatically.</Empty>}
@@ -84,6 +111,9 @@ export default function Kitchen() {
                   {NEXT_LABEL[o.status]}
                 </button>
               )}
+              <button className="btn-outline btn-sm" onClick={() => kot(o)} title="Print KOT">
+                🖨
+              </button>
               {o.status !== "READY" && (
                 <button
                   className="btn-outline btn-sm"
@@ -96,6 +126,8 @@ export default function Kitchen() {
           </div>
         ))}
       </div>
+
+      <Toast message={toast} onClose={() => setToast("")} />
     </div>
   );
 }

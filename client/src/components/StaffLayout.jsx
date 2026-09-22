@@ -118,6 +118,7 @@ const NAV_CONFIG = {
     { to: "/admin/waiters", label: "Waiters Staff", icon: "waiters", badge: "Staff" },
     { to: "/admin/tables", label: "Tables & QR", icon: "tables" },
     { to: "/admin/menu", label: "Menu Items", icon: "menu" },
+    { to: "/admin/inventory", label: "Inventory", icon: "tables", badge: "Stock" },
     { to: "/admin/customers", label: "Customers", icon: "customers" },
     { to: "/admin/expenses", label: "Daily Cost", icon: "expenses" },
     { to: "/admin/reports", label: "Reports", icon: "reports" },

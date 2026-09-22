@@ -3,7 +3,7 @@ import { api } from "../../api.js";
 import { Toast, Spinner } from "../../components/ui.jsx";
 import { useAuth } from "../../store/auth.js";
 import { useSettings } from "../../store/settings.js";
-import { User, Store, MessageCircle, Phone, Save } from "lucide-react";
+import { User, Store, MessageCircle, Phone, Save, Receipt } from "lucide-react";
 
 export default function AdminSettings() {
   const { user } = useAuth();
@@ -27,9 +27,50 @@ export default function AdminSettings() {
   });
   const [savingShop, setSavingShop] = useState(false);
 
+  // Tax / Fiscal Form (stored in generic settings)
+  const [taxForm, setTaxForm] = useState({
+    businessName: "",
+    businessAddress: "",
+    taxNumber: "",
+    taxRate: "",
+    taxLabel: "VAT",
+    invoicePrefix: "INV",
+  });
+  const [savingTax, setSavingTax] = useState(false);
+
   useEffect(() => {
     setShopForm({ shopName, shopTagline, currency });
   }, [shopName, shopTagline, currency]);
+
+  // Load fiscal settings once.
+  useEffect(() => {
+    api
+      .get("/settings")
+      .then(({ data }) => {
+        setTaxForm((f) => ({
+          businessName: data.businessName || "",
+          businessAddress: data.businessAddress || "",
+          taxNumber: data.taxNumber || "",
+          taxRate: data.taxRate || "",
+          taxLabel: data.taxLabel || "VAT",
+          invoicePrefix: data.invoicePrefix || "INV",
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveTax = async (e) => {
+    e.preventDefault();
+    setSavingTax(true);
+    try {
+      await api.put("/settings", taxForm);
+      setToast("Tax & invoice settings saved");
+    } catch (err) {
+      setToast(err.message || "Failed to save tax settings");
+    } finally {
+      setSavingTax(false);
+    }
+  };
 
   const saveProfile = async (e) => {
     e.preventDefault();
@@ -167,7 +208,54 @@ export default function AdminSettings() {
               </div>
             </form>
           </div>
-          
+
+          {/* TAX / FISCAL CONFIGURATION */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">Tax & Invoice (Fiscal)</h2>
+            </div>
+            <form onSubmit={saveTax} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Registered Business Name</label>
+                <input className="input" value={taxForm.businessName} onChange={(e) => setTaxForm({ ...taxForm, businessName: e.target.value })} placeholder="Zafran Restaurant W.L.L." />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Business Address</label>
+                <input className="input" value={taxForm.businessAddress} onChange={(e) => setTaxForm({ ...taxForm, businessAddress: e.target.value })} placeholder="Street, City, Country" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tax Registration No. (TRN / VAT No.)</label>
+                <input className="input" value={taxForm.taxNumber} onChange={(e) => setTaxForm({ ...taxForm, taxNumber: e.target.value })} placeholder="TRN-XXXXXXXXX" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tax %</label>
+                  <input type="number" step="0.01" className="input" value={taxForm.taxRate} onChange={(e) => setTaxForm({ ...taxForm, taxRate: e.target.value })} placeholder="5" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Label</label>
+                  <input className="input" value={taxForm.taxLabel} onChange={(e) => setTaxForm({ ...taxForm, taxLabel: e.target.value })} placeholder="VAT" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Inv. Prefix</label>
+                  <input className="input" value={taxForm.invoicePrefix} onChange={(e) => setTaxForm({ ...taxForm, invoicePrefix: e.target.value })} placeholder="INV" />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Set Tax % to 0 to disable tax. Once set, every order applies this tax and each paid order gets a sequential invoice number for compliant receipts.
+              </p>
+              <div className="pt-2 text-right">
+                <button type="submit" className="btn-primary flex items-center gap-2 ml-auto !bg-emerald-600 hover:!bg-emerald-700" disabled={savingTax}>
+                  <Save className="w-4 h-4" />
+                  {savingTax ? "Saving..." : "Save Tax Settings"}
+                </button>
+              </div>
+            </form>
+          </div>
+
         </div>
 
         {/* Right Column */}
