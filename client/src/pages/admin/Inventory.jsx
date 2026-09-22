@@ -2,25 +2,22 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { Spinner, Empty, Toast } from "../../components/ui.jsx";
 
-// Inventory / stock management + total sale counts per item.
+// Inventory / stock management.
 export default function Inventory() {
   const [items, setItems] = useState([]);
-  const [sales, setSales] = useState({}); // menuItemId -> { soldQty, revenue }
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
-  const [tab, setTab] = useState("stock"); // stock | sales
   const [adjust, setAdjust] = useState(null); // item being adjusted
 
   const load = useCallback(async () => {
-    const [inv, top] = await Promise.all([
-      api.get("/inventory"),
-      api.get("/reports/top-items").catch(() => ({ data: { rows: [] } })),
-    ]);
-    setItems(inv.data.items);
-    const map = {};
-    top.data.rows.forEach((r) => (map[r.menuItemId] = r));
-    setSales(map);
-    setLoading(false);
+    try {
+      const inv = await api.get("/inventory");
+      setItems(inv.data.items);
+    } catch (e) {
+      setToast("Failed to load inventory");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -47,42 +44,17 @@ export default function Inventory() {
   };
 
   const lowCount = useMemo(() => items.filter((i) => i.low).length, [items]);
-  const totalSold = useMemo(
-    () => Object.values(sales).reduce((s, r) => s + r.soldQty, 0),
-    [sales]
-  );
-
-  // Sales-sorted list for the Sales tab.
-  const salesRows = useMemo(() => {
-    return items
-      .map((i) => ({ ...i, ...(sales[i.id] || { soldQty: 0, revenue: 0 }) }))
-      .sort((a, b) => b.soldQty - a.soldQty);
-  }, [items, sales]);
 
   if (loading) return <Spinner />;
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Inventory & Sales</h1>
-        <div className="flex gap-1">
-          {[
-            ["stock", "Stock"],
-            ["sales", "Sale Count"],
-          ].map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${tab === k ? "bg-brand text-white" : "border border-gray-300 bg-white"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <h1 className="text-xl font-bold">Inventory Management</h1>
       </div>
 
       {/* KPI row */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="card p-3">
           <p className="text-xs text-gray-500">Tracked items</p>
           <p className="mt-1 text-lg font-bold">{items.filter((i) => i.trackStock).length}</p>
@@ -91,14 +63,9 @@ export default function Inventory() {
           <p className="text-xs text-gray-500">Low / out of stock</p>
           <p className={`mt-1 text-lg font-bold ${lowCount ? "text-orange-600" : "text-emerald-600"}`}>{lowCount}</p>
         </div>
-        <div className="card p-3">
-          <p className="text-xs text-gray-500">Total units sold</p>
-          <p className="mt-1 text-lg font-bold text-brand">{totalSold}</p>
-        </div>
       </div>
 
-      {tab === "stock" ? (
-        <div className="card divide-y">
+      <div className="card divide-y">
           {items.length === 0 && <Empty>No menu items.</Empty>}
           {items.map((it) => (
             <div key={it.id} className="p-3">
@@ -119,7 +86,6 @@ export default function Inventory() {
                   ) : (
                     <p className="text-xs text-gray-400">not tracked</p>
                   )}
-                  <p className="text-[11px] text-gray-400">sold {sales[it.id]?.soldQty || 0}</p>
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -142,39 +108,6 @@ export default function Inventory() {
             </div>
           ))}
         </div>
-      ) : (
-        <div className="card overflow-x-auto">
-          <table className="w-full min-w-[340px] text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="p-3">#</th>
-                <th className="p-3">Item</th>
-                <th className="p-3 text-right">Total Sold</th>
-                <th className="p-3 text-right">Revenue</th>
-                <th className="p-3 text-right">Stock</th>
-              </tr>
-            </thead>
-            <tbody>
-              {salesRows.map((r, idx) => (
-                <tr key={r.id} className="border-b last:border-0">
-                  <td className="p-3 text-gray-400">{idx + 1}</td>
-                  <td className="p-3 font-medium">{r.name}</td>
-                  <td className="p-3 text-right font-bold text-brand">{r.soldQty}</td>
-                  <td className="p-3 text-right">{money(r.revenue)}</td>
-                  <td className="p-3 text-right">{r.trackStock ? r.stockQty : "—"}</td>
-                </tr>
-              ))}
-              {salesRows.length === 0 && (
-                <tr>
-                  <td colSpan={5}>
-                    <Empty>No sales yet.</Empty>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       {/* Adjust modal */}
       {adjust && (

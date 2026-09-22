@@ -47,19 +47,20 @@ export default function Landing() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent mix-blend-multiply" />
         <div className="absolute inset-0 bg-ink/30" />
-        <div className="absolute bottom-16 left-6 right-6 flex flex-col items-center justify-end text-center z-10 animate-fade-up">
-          <span className="mb-2 rounded-full bg-white/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md shadow-sm border border-white/10">
-            Welcome To
-          </span>
-          <h1 className="display mb-2 text-5xl font-black tracking-tight text-white drop-shadow-xl sm:text-6xl text-balance leading-tight">
-            {shopName}
-          </h1>
-          <p className="text-sm font-semibold tracking-wide text-brand-light drop-shadow-md sm:text-base opacity-90 uppercase">
-            {shopTagline}
-          </p>
-        </div>
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pb-20 pt-32 text-center sm:pt-40">
-          <p className="animate-fade-up mt-5 w-full max-w-xl text-base text-white/70 sm:text-lg">
+        <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pb-20 pt-32 text-center sm:pt-40">
+          <div className="flex flex-col items-center text-center animate-fade-up">
+            <span className="mb-4 rounded-full bg-white/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md shadow-sm border border-white/10">
+              Welcome To
+            </span>
+            <h1 className="display mb-3 text-5xl font-black tracking-tight text-white drop-shadow-xl sm:text-6xl text-balance leading-tight">
+              {shopName}
+            </h1>
+            <p className="text-sm font-semibold tracking-wide text-brand-light drop-shadow-md sm:text-base opacity-90 uppercase">
+              {shopTagline}
+            </p>
+          </div>
+
+          <p className="animate-fade-up mt-8 w-full max-w-xl text-base text-white/70 sm:text-lg">
             Scan, browse our chef-crafted menu and order in seconds — dine-in, takeaway or
             home delivery. No app, no login, no waiting.
           </p>

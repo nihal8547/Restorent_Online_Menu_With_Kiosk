@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { Spinner, Toast } from "../../components/ui.jsx";
@@ -15,6 +15,21 @@ export default function WaiterOrder() {
   const [note, setNote] = useState("");
   const [toast, setToast] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const totalItems = cart.reduce((s, i) => s + i.qty, 0);
+
+  const displayedCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+    const q = searchQuery.toLowerCase();
+    return categories
+      .map((cat) => ({
+        ...cat,
+        items: cat.items.filter((item) => item.name.toLowerCase().includes(q)),
+      }))
+      .filter((cat) => cat.items.length > 0);
+  }, [categories, searchQuery]);
 
   useEffect(() => {
     (async () => {
@@ -72,20 +87,66 @@ export default function WaiterOrder() {
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Menu */}
       <div className="lg:col-span-2">
-        <h1 className="mb-3 text-xl font-bold">New Order</h1>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-bold">New Order</h1>
+          <div className="relative flex-1 max-w-sm">
+            <input
+              type="text"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input w-full pl-9 py-2"
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1.5 text-xl font-bold text-gray-400 hover:text-gray-600"
+              >&times;</button>
+            )}
+          </div>
+        </div>
         <div className="space-y-5">
-          {categories.map((cat) => (
+          {displayedCategories.length === 0 && (
+            <p className="py-10 text-center text-gray-500">No items found.</p>
+          )}
+          {displayedCategories.map((cat) => (
             <section key={cat.id}>
               <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-400">{cat.name}</h2>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
                 {cat.items.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => add(item)}
-                    className="card flex items-center justify-between p-3 text-left hover:border-brand"
+                    className="card flex overflow-hidden text-left hover:border-brand transition-colors"
                   >
-                    <span className="font-medium">{item.name}</span>
-                    <span className="text-sm font-semibold text-brand">{money(item.price)}</span>
+                    <div className="h-16 w-16 shrink-0 bg-slate-900 relative">
+                      {item.photoUrl ? (
+                        <img
+                          src={item.photoUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                            e.target.nextSibling.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-ink to-ink-soft text-white ${item.photoUrl ? "hidden" : "flex"}`}>
+                        <span className="text-xl opacity-80">🍲</span>
+                      </div>
+                    </div>
+                    <div className="p-3 flex-1 flex flex-col justify-center">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{cat.name}</p>
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-medium line-clamp-2 leading-tight">{item.name}</span>
+                        <span className="text-sm font-semibold text-brand shrink-0">{money(item.price)}</span>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -95,8 +156,14 @@ export default function WaiterOrder() {
       </div>
 
       {/* Cart / ticket */}
-      <div className="lg:sticky lg:top-20 lg:self-start">
-        <div className="card p-4">
+      <div className={`lg:sticky lg:top-20 lg:self-start ${cartOpen ? "fixed inset-0 z-50 flex flex-col justify-end bg-black/60 sm:items-center sm:justify-center p-0 sm:p-4 lg:p-0 lg:bg-transparent lg:block" : "hidden lg:block"}`}>
+        {cartOpen && <div className="absolute inset-0 lg:hidden" onClick={() => setCartOpen(false)} />}
+        <div className="card w-full max-w-md p-5 bg-white max-h-[85vh] overflow-y-auto relative animate-fade-up lg:animate-none rounded-t-3xl sm:rounded-2xl lg:rounded-2xl z-10">
+          <div className="flex items-center justify-between mb-4 lg:hidden">
+            <h2 className="font-bold text-lg">Current Order</h2>
+            <button onClick={() => setCartOpen(false)} className="text-gray-400 hover:text-gray-800 font-bold text-2xl">&times;</button>
+          </div>
+
           <div className="mb-3">
             <label className="label">Order type</label>
             <div className="flex gap-2">
@@ -153,6 +220,20 @@ export default function WaiterOrder() {
           </button>
         </div>
       </div>
+
+      {/* Floating button on mobile */}
+      {totalItems > 0 && !cartOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white p-4 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.1)] lg:hidden">
+          <button 
+            className="btn-primary w-full flex items-center justify-between px-5 py-3 shadow-md"
+            onClick={() => setCartOpen(true)}
+          >
+            <span className="font-bold text-brand bg-white px-2 py-0.5 rounded-full text-sm shadow-sm">{totalItems} items</span>
+            <span className="font-bold tracking-wide text-white">View Order</span>
+            <span className="font-bold text-white">{money(subtotal)}</span>
+          </button>
+        </div>
+      )}
 
       <Toast message={toast} onClose={() => setToast("")} />
     </div>

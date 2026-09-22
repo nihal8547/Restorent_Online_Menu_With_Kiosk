@@ -6,7 +6,9 @@ import { Printer } from "lucide-react";
 
 export default function Billing() {
   const [orders, setOrders] = useState([]);
+  const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState("LIST"); // LIST | TABLE
   const [filter, setFilter] = useState("ALL"); // ALL | PENDING | PAID
   const [staffFilter, setStaffFilter] = useState("ALL"); // ALL or staff username/name
   const [search, setSearch] = useState("");
@@ -18,8 +20,12 @@ export default function Billing() {
     const params = { today: 1 };
     if (filter === "PENDING") params.paymentStatus = "PENDING";
     if (filter === "PAID") params.paymentStatus = "PAID";
-    const { data } = await api.get("/orders", { params });
-    setOrders(data.orders || []);
+    const [ordersRes, tablesRes] = await Promise.all([
+      api.get("/orders", { params }),
+      api.get("/tables").catch(() => ({ data: { tables: [] } })),
+    ]);
+    setOrders(ordersRes.data.orders || []);
+    setTables(tablesRes.data.tables || []);
     setLoading(false);
   }, [filter]);
 
@@ -147,8 +153,29 @@ export default function Billing() {
           </p>
         </div>
 
-        {/* Payment Filter Buttons */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+        {/* View Toggles & Payment Filters */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+            <button
+              onClick={() => setViewMode("LIST")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                viewMode === "LIST" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode("TABLE")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                viewMode === "TABLE" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              Table Map
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
           <button
             onClick={() => setFilter("ALL")}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
@@ -177,6 +204,7 @@ export default function Billing() {
           >
             Paid ({metrics.paidCount})
           </button>
+        </div>
         </div>
       </div>
 
@@ -265,9 +293,51 @@ export default function Billing() {
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 4. ORDERS GRID WITH AUDIT BADGES (Who Billed & Who Placed)    */}
+      {/* 4. ORDERS GRID WITH AUDIT BADGES OR TABLE MAP                 */}
       {/* ------------------------------------------------------------- */}
-      {filteredOrders.length === 0 ? (
+      {viewMode === "TABLE" ? (
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {tables.map((t) => {
+            const activeOrder = orders.find((o) => o.table?.id === t.id && o.paymentStatus === "PENDING");
+            return (
+              <div
+                key={t.id}
+                className={`card p-4 flex flex-col items-center justify-center border text-center transition-all min-h-[140px] ${
+                  activeOrder
+                    ? "border-amber-400 bg-amber-50 shadow-md"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                }`}
+              >
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Table</span>
+                <span className={`text-3xl font-black ${activeOrder ? "text-amber-600" : "text-slate-700"}`}>
+                  {t.tableNo}
+                </span>
+
+                {activeOrder ? (
+                  <div className="mt-3 flex flex-col items-center w-full">
+                    <span className="text-xs font-bold text-amber-800 bg-amber-200/50 px-2 py-0.5 rounded-md mb-2">
+                      {money(activeOrder.total)}
+                    </span>
+                    <button
+                      className="btn-primary w-full !py-1.5 text-xs font-bold shadow-sm"
+                      onClick={() => openPay(activeOrder)}
+                    >
+                      Collect
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100/50 px-3 py-1 rounded-full border border-emerald-200/50">
+                    Available
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {tables.length === 0 && (
+            <p className="col-span-full text-center text-slate-500 py-10">No tables configured.</p>
+          )}
+        </div>
+      ) : filteredOrders.length === 0 ? (
         <Empty>No orders match the current filter or search.</Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
