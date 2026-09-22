@@ -4,6 +4,7 @@ import { Utensils, Smartphone, ShoppingCart, CheckCircle } from "lucide-react";
 import { api, money } from "../../api.js";
 import { BRAND } from "../../config.js";
 import { useSettings } from "../../store/settings.js";
+import AssistanceDongle from "../../components/customer/AssistanceDongle.jsx";
 
 export default function Landing() {
   const { shopName, shopTagline } = useSettings();
@@ -168,6 +169,9 @@ export default function Landing() {
           <p className="mt-1">Fresh food, made with love. © {new Date().getFullYear()}</p>
         </div>
       </footer>
+
+      {/* Floating Waiter Assistance Dongle */}
+      <AssistanceDongle />
     </div>
   );
 }

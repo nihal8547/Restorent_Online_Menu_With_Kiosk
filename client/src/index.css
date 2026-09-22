@@ -53,6 +53,26 @@ body {
   scrollbar-width: none;
 }
 
+/* Beautiful custom thin scrollbar for dark backgrounds (Sidebar) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
 /* ── Thermal Receipt Print Styles ── */
 @media print {
   /* Step 1: Hide EVERYTHING on the page */
@@ -118,3 +138,62 @@ body {
     margin: 3mm 2mm;
   }
 }
+
+/* ── Full Page A4 Report Print Styles ── */
+@media print {
+  body.printing-report * {
+    visibility: hidden !important;
+  }
+  body.printing-report .report-printable,
+  body.printing-report .report-printable * {
+    visibility: visible !important;
+  }
+  body.printing-report .report-printable {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 16px !important;
+    margin: 0 !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+  body.printing-report .no-print {
+    display: none !important;
+  }
+}
+
+/* ── Custom Micro-Animations for Assistance Dongle & Alerts ── */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-15deg); }
+  40% { transform: rotate(12deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(4deg); }
+}
+
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-wiggle {
+  animation: wiggle 1.2s ease-in-out infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounceSubtle 2s ease-in-out infinite;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+

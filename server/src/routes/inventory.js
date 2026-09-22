@@ -12,17 +12,25 @@ router.get("/", ...adminOnly, async (req, res, next) => {
       orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
       include: { category: { select: { name: true } } },
     });
-    const rows = items.map((i) => ({
-      id: i.id,
-      name: i.name,
-      category: i.category?.name,
-      available: i.available,
-      trackStock: i.trackStock,
-      stockQty: i.stockQty,
-      lowStockAt: i.lowStockAt,
-      low: i.trackStock && i.stockQty <= i.lowStockAt,
-      out: i.trackStock && i.stockQty <= 0,
-    }));
+    const rows = items.map((i) => {
+      const isOut = !i.available || (i.trackStock && i.stockQty <= 0);
+      const isLow = i.trackStock && i.stockQty > 0 && i.stockQty <= i.lowStockAt;
+      return {
+        id: i.id,
+        name: i.name,
+        price: Number(i.price),
+        photoUrl: i.photoUrl,
+        categoryId: i.categoryId,
+        category: i.category?.name || "General",
+        available: i.available,
+        trackStock: i.trackStock,
+        stockQty: i.stockQty,
+        lowStockAt: i.lowStockAt,
+        low: isLow,
+        out: isOut,
+        status: isOut ? "OUT_OF_STOCK" : isLow ? "LOW_STOCK" : i.trackStock ? "IN_STOCK" : "UNTRACKED",
+      };
+    });
     res.json({ items: rows });
   } catch (e) {
     next(e);
@@ -34,7 +42,7 @@ router.get("/low", ...adminOnly, async (req, res, next) => {
   try {
     const items = await prisma.menuItem.findMany({
       where: { trackStock: true },
-      select: { id: true, name: true, stockQty: true, lowStockAt: true },
+      select: { id: true, name: true, stockQty: true, lowStockAt: true, available: true },
     });
     const low = items
       .filter((i) => i.stockQty <= i.lowStockAt)
@@ -45,18 +53,66 @@ router.get("/low", ...adminOnly, async (req, res, next) => {
   }
 });
 
-// PUT /api/inventory/:id/config — toggle tracking, set threshold.
-// body: { trackStock, lowStockAt }
+// PUT /api/inventory/:id/config — toggle tracking, set threshold, update quantity.
 router.put("/:id/config", ...adminOnly, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const { trackStock, lowStockAt } = req.body || {};
+    const { trackStock, lowStockAt, stockQty, available } = req.body || {};
+
+    const current = await prisma.menuItem.findUnique({ where: { id } });
+    if (!current) return res.status(404).json({ error: "Item not found" });
+
+    const newTrackStock = trackStock !== undefined ? !!trackStock : current.trackStock;
+    const newStockQty = stockQty !== undefined ? Math.max(0, Number(stockQty) || 0) : current.stockQty;
+
+    let newAvailable = current.available;
+    if (available !== undefined) {
+      newAvailable = !!available;
+    } else if (newTrackStock) {
+      newAvailable = newStockQty > 0;
+    }
+
     const item = await prisma.menuItem.update({
       where: { id },
       data: {
-        ...(trackStock !== undefined && { trackStock: !!trackStock }),
+        trackStock: newTrackStock,
+        stockQty: newStockQty,
+        available: newAvailable,
         ...(lowStockAt !== undefined && { lowStockAt: Math.max(0, Number(lowStockAt) || 0) }),
       },
+    });
+    res.json({ item });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// PUT /api/inventory/:id/toggle-status — one-click In Stock / Out of Stock toggle.
+router.put("/:id/toggle-status", ...adminOnly, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const current = await prisma.menuItem.findUnique({ where: { id } });
+    if (!current) return res.status(404).json({ error: "Item not found" });
+
+    const nextAvailable = !current.available || (current.trackStock && current.stockQty <= 0);
+    const updateData = { available: nextAvailable };
+
+    if (nextAvailable) {
+      // Marking available
+      if (current.trackStock && current.stockQty <= 0) {
+        updateData.stockQty = 10; // Default restock to 10 so it stays available
+      }
+    } else {
+      // Marking out of stock
+      updateData.available = false;
+      if (current.trackStock) {
+        updateData.stockQty = 0;
+      }
+    }
+
+    const item = await prisma.menuItem.update({
+      where: { id },
+      data: updateData,
     });
     res.json({ item });
   } catch (e) {
@@ -80,13 +136,14 @@ router.post("/:id/adjust", ...adminOnly, async (req, res, next) => {
       const item = await tx.menuItem.findUnique({ where: { id } });
       if (!item) throw Object.assign(new Error("Item not found"), { status: 404 });
       const newQty = Math.max(0, item.stockQty + change);
+      const isAvailable = newQty > 0;
+
       const updated = await tx.menuItem.update({
         where: { id },
         data: {
           stockQty: newQty,
           trackStock: true, // adjusting stock implies tracking
-          // Restocking a zero item makes it available again.
-          ...(newQty > 0 && !item.available && change > 0 ? { available: true } : {}),
+          available: isAvailable, // Automatically sync menu availability!
         },
       });
       await tx.stockMovement.create({

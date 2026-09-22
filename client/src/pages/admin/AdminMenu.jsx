@@ -74,13 +74,15 @@ export default function AdminMenu() {
   // Filtered items based on search, category pill, and stock status
   const filteredItems = useMemo(() => {
     return allItems.filter((it) => {
+      const isAvailable = it.available && (!it.trackStock || it.stockQty > 0);
+
       // Category filter
       if (selectedCategory !== "ALL" && String(it.categoryId) !== String(selectedCategory)) {
         return false;
       }
       // Stock filter
-      if (stockFilter === "IN_STOCK" && !it.available) return false;
-      if (stockFilter === "OUT_OF_STOCK" && it.available) return false;
+      if (stockFilter === "IN_STOCK" && !isAvailable) return false;
+      if (stockFilter === "OUT_OF_STOCK" && isAvailable) return false;
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -450,16 +452,21 @@ export default function AdminMenu() {
 
                     {/* Stock Status Badge */}
                     <div className="absolute top-2.5 left-2.5">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold backdrop-blur-md shadow-sm ${
-                          item.available
-                            ? "bg-emerald-500/90 text-white"
-                            : "bg-rose-500/90 text-white"
-                        }`}
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                        {item.available ? "In Stock" : "Out of Stock"}
-                      </span>
+                      {(() => {
+                        const isAvailable = item.available && (!item.trackStock || item.stockQty > 0);
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold backdrop-blur-md shadow-sm ${
+                              isAvailable
+                                ? "bg-emerald-500/90 text-white"
+                                : "bg-rose-500/90 text-white"
+                            }`}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                            {isAvailable ? "In Stock" : "Out of Stock"}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* Category Label Overlay */}
@@ -491,18 +498,23 @@ export default function AdminMenu() {
                     {/* Action Bar */}
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                       {/* Stock Switch Toggle */}
-                      <button
-                        onClick={() => toggleItem(item)}
-                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition ${
-                          item.available
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                        }`}
-                        title="Click to toggle stock status"
-                      >
-                        <span className={`h-2 w-2 rounded-full ${item.available ? "bg-emerald-500" : "bg-rose-500"}`} />
-                        <span>{item.available ? "Available" : "Disabled"}</span>
-                      </button>
+                      {(() => {
+                        const isAvailable = item.available && (!item.trackStock || item.stockQty > 0);
+                        return (
+                          <button
+                            onClick={() => toggleItem(item)}
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition ${
+                              isAvailable
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                            }`}
+                            title="Click to toggle stock status"
+                          >
+                            <span className={`h-2 w-2 rounded-full ${isAvailable ? "bg-emerald-500" : "bg-rose-500"}`} />
+                            <span>{isAvailable ? "Available" : "Disabled"}</span>
+                          </button>
+                        );
+                      })()}
 
                       <div className="flex items-center gap-1">
                         {/* Edit Button */}
@@ -625,18 +637,23 @@ export default function AdminMenu() {
 
                       {/* Stock Status Interactive Button */}
                       <td className="py-3 px-4">
-                        <button
-                          onClick={() => toggleItem(item)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition ${
-                            item.available
-                              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                              : "bg-rose-100 text-rose-700 hover:bg-rose-200"
-                          }`}
-                          title="Click to toggle stock status"
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${item.available ? "bg-emerald-500" : "bg-rose-500"}`} />
-                          <span>{item.available ? "In Stock" : "Out of Stock"}</span>
-                        </button>
+                        {(() => {
+                          const isAvailable = item.available && (!item.trackStock || item.stockQty > 0);
+                          return (
+                            <button
+                              onClick={() => toggleItem(item)}
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition ${
+                                isAvailable
+                                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                  : "bg-rose-100 text-rose-700 hover:bg-rose-200"
+                              }`}
+                              title="Click to toggle stock status"
+                            >
+                              <span className={`h-1.5 w-1.5 rounded-full ${isAvailable ? "bg-emerald-500" : "bg-rose-500"}`} />
+                              <span>{isAvailable ? "In Stock" : "Out of Stock"}</span>
+                            </button>
+                          );
+                        })()}
                       </td>
 
                       {/* Actions */}

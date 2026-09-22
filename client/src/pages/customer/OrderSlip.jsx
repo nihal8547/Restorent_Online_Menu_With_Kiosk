@@ -55,7 +55,13 @@ export default function OrderSlip() {
   useEffect(() => {
     if (autoPrint && order && !printed) {
       setPrinted(true);
-      const t = setTimeout(() => window.print(), 400);
+      const t = setTimeout(() => {
+        window.print();
+        // If it was opened in a standalone window, try to close it after printing
+        if (window.opener) {
+          window.close();
+        }
+      }, 400);
       return () => clearTimeout(t);
     }
   }, [autoPrint, order, printed]);
@@ -116,8 +122,8 @@ export default function OrderSlip() {
     : "Your delivery order is being prepared!";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-start justify-center py-8 px-4">
-      <div className="receipt-wrapper w-full max-w-xs bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex items-start justify-center py-8 px-4 print:p-0 print:bg-transparent print:min-h-0 print:block">
+      <div className="receipt-wrapper w-full max-w-xs bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden print:w-full print:max-w-[80mm] print:mx-auto print:rounded-none print:shadow-none print:border-none text-black">
 
         {/* Dynamic status top bar */}
         <div className={`${cfg.bg} py-4 text-center text-white print:hidden transition-colors duration-700`}>
@@ -245,7 +251,7 @@ export default function OrderSlip() {
         </div>
 
         {/* Action buttons */}
-        <div className="no-print px-5 pb-5 flex flex-col gap-2">
+        <div className="print:hidden px-5 pb-5 flex flex-col gap-2">
           <button
             onClick={() => window.print()}
             className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition"

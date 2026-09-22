@@ -14,7 +14,13 @@ router.get("/", async (req, res, next) => {
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       include: {
         items: {
-          where: { available: true },
+          where: {
+            available: true,
+            OR: [
+              { trackStock: false },
+              { stockQty: { gt: 0 } },
+            ],
+          },
           orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         },
       },
@@ -114,6 +120,21 @@ router.put("/admin/items/:id", ...adminOnly, async (req, res, next) => {
     const id = Number(req.params.id);
     const { categoryId, name, description, price, photoUrl, available, sortOrder, trackStock, stockQty, lowStockAt } =
       req.body || {};
+
+    const current = await prisma.menuItem.findUnique({ where: { id } });
+    if (!current) return res.status(404).json({ error: "Item not found" });
+
+    const newTrackStock = trackStock !== undefined ? !!trackStock : current.trackStock;
+    let newStockQty = stockQty !== undefined ? Math.max(0, Number(stockQty) || 0) : current.stockQty;
+    let newAvailable = available !== undefined ? !!available : current.available;
+
+    // If tracking is enabled and user turns available: true but stock is 0, auto-assign stock
+    if (newTrackStock && newAvailable && newStockQty <= 0 && available === true) {
+      newStockQty = 10;
+    } else if (newTrackStock && newStockQty <= 0 && stockQty !== undefined) {
+      newAvailable = false;
+    }
+
     const item = await prisma.menuItem.update({
       where: { id },
       data: {
@@ -122,10 +143,10 @@ router.put("/admin/items/:id", ...adminOnly, async (req, res, next) => {
         ...(description !== undefined && { description: description ? String(description) : null }),
         ...(price !== undefined && { price: Number(price) }),
         ...(photoUrl !== undefined && { photoUrl: photoUrl || null }),
-        ...(available !== undefined && { available: !!available }),
+        available: newAvailable,
         ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) || 0 }),
-        ...(trackStock !== undefined && { trackStock: !!trackStock }),
-        ...(stockQty !== undefined && { stockQty: Math.max(0, Number(stockQty) || 0) }),
+        trackStock: newTrackStock,
+        stockQty: newStockQty,
         ...(lowStockAt !== undefined && { lowStockAt: Math.max(0, Number(lowStockAt) || 0) }),
       },
     });

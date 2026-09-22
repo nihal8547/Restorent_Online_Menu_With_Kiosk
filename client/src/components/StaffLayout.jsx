@@ -115,19 +115,20 @@ const NAV_CONFIG = {
   ADMIN: [
     { to: "/admin", label: "Dashboard", icon: "dashboard", end: true, badge: "Main" },
     { to: "/admin/billing", label: "Billing / POS", icon: "billing", badge: "POS" },
+    { to: "/kitchen", label: "Kitchen Live", icon: "kitchen", badge: "Live" },
     { to: "/admin/waiters", label: "Waiters Staff", icon: "waiters", badge: "Staff" },
-    { to: "/admin/tables", label: "Tables & QR", icon: "tables" },
     { to: "/admin/menu", label: "Menu Items", icon: "menu" },
-    { to: "/admin/inventory", label: "Inventory", icon: "tables", badge: "Stock" },
     { to: "/admin/mapping", label: "Menu Mapping", icon: "menu", badge: "Delivery" },
+    { to: "/admin/tables", label: "Tables & QR", icon: "tables" },
+    { to: "/admin/inventory", label: "Inventory", icon: "tables", badge: "Stock" },
     { to: "/admin/customers", label: "Customers", icon: "customers" },
     { to: "/admin/expenses", label: "Daily Cost", icon: "expenses" },
+    // { to: "/admin/accounting", label: "Accounting", icon: "billing", badge: "Books" },
     { to: "/admin/reports", label: "Reports", icon: "reports" },
-    { to: "/admin/accounting", label: "Accounting", icon: "billing", badge: "Books" },
     { to: "/admin/settings", label: "Settings", icon: "settings" },
-    { to: "/kitchen", label: "Kitchen Live", icon: "kitchen", badge: "Live" },
   ],
   CASHIER: [
+    { to: "/waiter", label: "New Order", icon: "waiterOrder", end: true, badge: "Quick" },
     { to: "/admin/billing", label: "Billing / POS", icon: "billing", badge: "POS" },
     { to: "/admin/customers", label: "Customers", icon: "customers" },
     { to: "/admin/reports", label: "Reports", icon: "reports" },
@@ -360,7 +361,7 @@ export default function StaffLayout() {
           </div>
 
           {/* Nav Links List */}
-          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-2">
+          <nav className="flex-1 space-y-1.5 overflow-y-auto custom-scrollbar px-3 py-2">
             {links.map((link) => {
               return (
                 <NavLink

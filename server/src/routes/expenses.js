@@ -28,10 +28,33 @@ router.get("/", ...adminOnly, async (req, res, next) => {
   }
 });
 
-// POST /api/expenses  { title, amount, note?, date? }
+// POST /api/expenses  { title, amount, note?, date? } OR { items: [...], date? }
 router.post("/", ...adminOnly, async (req, res, next) => {
   try {
-    const { title, amount, note, date } = req.body || {};
+    const { items, title, amount, note, date } = req.body || {};
+
+    // Support batch creation
+    if (Array.isArray(items) && items.length > 0) {
+      const entryDate = date ? new Date(date) : new Date();
+      const validItems = items
+        .filter((it) => it && it.title && it.amount !== undefined && !isNaN(Number(it.amount)))
+        .map((it) => ({
+          title: String(it.title).trim(),
+          amount: Number(it.amount),
+          note: it.note ? String(it.note).trim() : null,
+          date: it.date ? new Date(it.date) : entryDate,
+        }));
+
+      if (validItems.length === 0) {
+        return res.status(400).json({ error: "No valid expense items provided" });
+      }
+
+      const created = await prisma.$transaction(
+        validItems.map((data) => prisma.expense.create({ data }))
+      );
+      return res.status(201).json({ expenses: created, count: created.length });
+    }
+
     if (!title || amount === undefined) {
       return res.status(400).json({ error: "title and amount are required" });
     }

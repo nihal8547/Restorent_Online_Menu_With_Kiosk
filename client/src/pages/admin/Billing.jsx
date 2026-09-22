@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
 import { Spinner, Empty, StatusBadge, TypeBadge, Toast } from "../../components/ui.jsx";
+import FastPOS from "../../components/admin/FastPOS.jsx";
 import { Printer } from "lucide-react";
 
 export default function Billing() {
@@ -15,6 +16,7 @@ export default function Billing() {
   const [active, setActive] = useState(null); // order being paid
   const [pay, setPay] = useState({ mode: "CASH", discount: 0 });
   const [toast, setToast] = useState("");
+  const [fastPosOpen, setFastPosOpen] = useState(false);
 
   const load = useCallback(async () => {
     const params = { today: 1 };
@@ -54,14 +56,32 @@ export default function Billing() {
         mode: pay.mode,
         discount: Number(pay.discount || 0),
       });
-      setToast("Payment collected ✓  Opening receipt…");
-      // Open the bill in a small popup window with auto-print enabled
-      const billUrl = `/bill/${active.orderToken}?autoprint=1`;
-      window.open(billUrl, "_blank", "width=420,height=680,scrollbars=yes");
+      setToast("Payment collected ✓ Printing receipt…");
+      
+      // Invisible iframe for seamless background printing
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = `/bill/${active.orderToken}?autoprint=1`;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        if (document.body.contains(iframe)) document.body.removeChild(iframe);
+      }, 10000);
+
       setActive(null);
       load();
     } catch (e) {
       setToast(e.message || "Failed to collect payment");
+    }
+  };
+
+  const cancelOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this order? This cannot be undone.")) return;
+    try {
+      await api.patch(`/orders/${orderId}/status`, { status: "CANCELLED" });
+      setToast("Order cancelled successfully.");
+      load();
+    } catch (e) {
+      setToast(e.message || "Failed to cancel order");
     }
   };
 
@@ -140,6 +160,21 @@ export default function Billing() {
 
   if (loading) return <Spinner />;
 
+  if (fastPosOpen) {
+    return (
+      <div className="-m-4 sm:-m-6 lg:-m-8 h-[calc(100vh-64px)]">
+        <FastPOS 
+          onClose={() => setFastPosOpen(false)} 
+          onComplete={() => {
+            setFastPosOpen(false);
+            load();
+            setToast("Order processed successfully!");
+          }} 
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* ------------------------------------------------------------- */}
@@ -175,7 +210,14 @@ export default function Billing() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+          <button
+            onClick={() => setFastPosOpen(true)}
+            className="hidden sm:inline-flex rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition ml-2"
+          >
+            + Manual Bill
+          </button>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner sm:ml-auto">
           <button
             onClick={() => setFilter("ALL")}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
@@ -318,12 +360,21 @@ export default function Billing() {
                     <span className="text-xs font-bold text-amber-800 bg-amber-200/50 px-2 py-0.5 rounded-md mb-2">
                       {money(activeOrder.total)}
                     </span>
-                    <button
-                      className="btn-primary w-full !py-1.5 text-xs font-bold shadow-sm"
-                      onClick={() => openPay(activeOrder)}
-                    >
-                      Collect
-                    </button>
+                    <div className="flex gap-1.5 w-full">
+                      <button
+                        className="btn-outline w-1/3 !py-1.5 !px-0 text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                        onClick={(e) => { e.stopPropagation(); cancelOrder(activeOrder.id); }}
+                        title="Cancel Order"
+                      >
+                        ✕
+                      </button>
+                      <button
+                        className="btn-primary flex-1 !py-1.5 text-xs font-bold shadow-sm"
+                        onClick={() => openPay(activeOrder)}
+                      >
+                        Collect
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-3 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100/50 px-3 py-1 rounded-full border border-emerald-200/50">
@@ -459,12 +510,21 @@ export default function Billing() {
                     </div>
 
                     {o.paymentStatus === "PENDING" ? (
-                      <button
-                        className="btn-primary btn-sm !py-2 !px-4 shadow-md shadow-brand/20 active:scale-95 transition font-bold"
-                        onClick={() => openPay(o)}
-                      >
-                        Collect Payment
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="btn-outline btn-sm !py-2 !px-3 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition font-bold"
+                          onClick={() => cancelOrder(o.id)}
+                          title="Cancel Order"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="btn-primary btn-sm !py-2 !px-4 shadow-md shadow-brand/20 active:scale-95 transition font-bold"
+                          onClick={() => openPay(o)}
+                        >
+                          Collect
+                        </button>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">
@@ -472,13 +532,15 @@ export default function Billing() {
                         </div>
                         {o.orderToken && (
                           <button
-                            onClick={() =>
-                              window.open(
-                                `/bill/${o.orderToken}?autoprint=1`,
-                                "_blank",
-                                "width=420,height=680,scrollbars=yes"
-                              )
-                            }
+                            onClick={() => {
+                              const iframe = document.createElement("iframe");
+                              iframe.style.display = "none";
+                              iframe.src = `/bill/${o.orderToken}?autoprint=1`;
+                              document.body.appendChild(iframe);
+                              setTimeout(() => {
+                                if (document.body.contains(iframe)) document.body.removeChild(iframe);
+                              }, 10000);
+                            }}
                             title="Reprint receipt"
                             className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition flex items-center justify-center"
                           >

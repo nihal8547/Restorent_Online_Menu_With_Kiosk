@@ -26,7 +26,7 @@ import Expenses from "./pages/admin/Expenses.jsx";
 import Reports from "./pages/admin/Reports.jsx";
 import Waiters from "./pages/admin/Waiters.jsx";
 import Inventory from "./pages/admin/Inventory.jsx";
-import Accounting from "./pages/admin/Accounting.jsx";
+// import Accounting from "./pages/admin/Accounting.jsx"; // Cancelled/Hidden module
 import MenuMapping from "./pages/admin/MenuMapping.jsx";
 import AdminSettings from "./pages/admin/AdminSettings.jsx";
 
@@ -45,6 +45,7 @@ export default function App() {
       <Route path="/t/:qrToken" element={<Menu />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order/:orderToken" element={<BillView />} />
+      <Route path="/bill/:orderToken" element={<BillView />} />
       <Route path="/order-slip/:orderToken" element={<OrderSlip />} />
       <Route path="/history" element={<History />} />
       <Route path="/login" element={<Login />} />
@@ -60,10 +61,10 @@ export default function App() {
         <Route path="/kitchen" element={<Kitchen />} />
       </Route>
 
-      {/* Waiter */}
+      {/* Waiter & Order Entry */}
       <Route
         element={
-          <RequireRole roles={["WAITER", "ADMIN"]}>
+          <RequireRole roles={["WAITER", "ADMIN", "CASHIER"]}>
             <StaffLayout />
           </RequireRole>
         }
@@ -89,7 +90,7 @@ export default function App() {
         <Route path="/admin/reports" element={<Reports />} />
         <Route path="/admin/waiters" element={<Waiters />} />
         <Route path="/admin/inventory" element={<Inventory />} />
-        <Route path="/admin/accounting" element={<Accounting />} />
+        {/* <Route path="/admin/accounting" element={<Accounting />} /> */}
         <Route path="/admin/mapping" element={<MenuMapping />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>

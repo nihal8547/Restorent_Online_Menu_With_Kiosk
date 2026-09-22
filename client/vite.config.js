@@ -11,4 +11,14 @@ export default defineConfig({
       "/socket.io": { target: "http://localhost:4000", ws: true, changeOrigin: true },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom", "axios", "zustand"],
+          icons: ["lucide-react"],
+        },
+      },
+    },
+  },
 });

@@ -5,6 +5,7 @@ import { useCart } from "../../store/cart.js";
 import { useSettings } from "../../store/settings.js";
 import { Spinner, Empty } from "../../components/ui.jsx";
 import { BRAND } from "../../config.js";
+import AssistanceDongle from "../../components/customer/AssistanceDongle.jsx";
 
 export default function Menu() {
   const { qrToken } = useParams();
@@ -19,9 +20,6 @@ export default function Menu() {
   const [loading, setLoading] = useState(true);
   const [table, setTable] = useState(null);
   const [err, setErr] = useState("");
-
-  const [callingWaiter, setCallingWaiter] = useState(false);
-  const [waiterCalled, setWaiterCalled] = useState(false);
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -99,21 +97,6 @@ export default function Menu() {
   const totalFound = useMemo(() => {
     return displayedCategories.reduce((acc, c) => acc + c.items.length, 0);
   }, [displayedCategories]);
-
-  const callWaiter = async () => {
-    if (!table || waiterCalled || callingWaiter) return;
-    setCallingWaiter(true);
-    try {
-      await api.post("/assistance", { tableNo: table.tableNo });
-      setWaiterCalled(true);
-      // Cooldown for 60 seconds
-      setTimeout(() => setWaiterCalled(false), 60000);
-    } catch (e) {
-      console.error("Failed to call waiter", e);
-    } finally {
-      setCallingWaiter(false);
-    }
-  };
 
   if (loading) return <Spinner />;
 
@@ -488,32 +471,9 @@ export default function Menu() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 6. CALL WAITER (ASSISTANCE) FLOATING BUTTON                   */}
+      {/* 6. CALL WAITER (ASSISTANCE) FLOATING DONGLE                   */}
       {/* ------------------------------------------------------------- */}
-      {table && (
-        <button
-          onClick={callWaiter}
-          disabled={waiterCalled || callingWaiter}
-          className={`fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-all ${
-            waiterCalled 
-              ? "bg-emerald-500 text-white scale-95" 
-              : "bg-brand text-white hover:bg-brand-dark active:scale-95"
-          }`}
-          title="Call Waiter"
-        >
-          {waiterCalled ? (
-            <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          ) : callingWaiter ? (
-            <Spinner className="w-6 h-6 text-white" />
-          ) : (
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          )}
-        </button>
-      )}
+      <AssistanceDongle initialTableNo={table?.tableNo} />
     </div>
   );
 }

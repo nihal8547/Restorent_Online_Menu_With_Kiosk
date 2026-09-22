@@ -6,6 +6,7 @@ export const useSettings = create((set) => ({
   shopName: BRAND.name,
   shopTagline: BRAND.tagline,
   currency: BRAND.currency,
+  callWaiterEnabled: true,
   loading: true,
 
   async fetchSettings() {
@@ -15,6 +16,7 @@ export const useSettings = create((set) => ({
         shopName: data.shopName || BRAND.name,
         shopTagline: data.shopTagline || BRAND.tagline,
         currency: data.currency || BRAND.currency,
+        callWaiterEnabled: data.call_waiter_enabled !== "0" && data.call_waiter_enabled !== false,
         loading: false,
       });
     } catch (err) {
