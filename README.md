@@ -125,11 +125,17 @@ POST   /api/webhooks/:platform          keeta | snoonu | talabat (x-webhook-secr
 
 ## Delivery platform integration
 
-`POST /api/webhooks/keeta|snoonu|talabat` accepts a normalised payload and creates a
-delivery order in the same kitchen/billing pipeline. Requests must carry
-`x-webhook-secret: <PLATFORM_WEBHOOK_SECRET>`, and duplicate `externalId`s are ignored
-(idempotent). Map each platform's real payload shape to this normalised body in
-`server/src/routes/webhooks.js`.
+Manage delivery partners in **Admin → Settings → Delivery Partners**:
+**Snoonu, Talabat, Keeta, Rafeeq, Deliveroo**. For each you set an API key, API secret,
+webhook secret, store id and base URL — secrets are **encrypted at rest** (AES-256-GCM)
+and never returned to the browser (only masked). Each platform shows the **Webhook URL**
+to hand to that partner, plus Enable and Test controls. API: `/api/integrations/*`.
+
+`POST /api/webhooks/{snoonu|talabat|keeta|rafeeq|deliveroo}` accepts a normalised payload
+and creates a delivery order in the same kitchen/billing pipeline. The request must carry
+`x-webhook-secret` matching that platform's stored secret, the integration must be enabled,
+and duplicate `externalId`s are ignored (idempotent). Map each platform's real payload shape
+to the normalised body in `server/src/routes/webhooks.js`.
 
 ## Inventory, tax & KOT (POS features)
 

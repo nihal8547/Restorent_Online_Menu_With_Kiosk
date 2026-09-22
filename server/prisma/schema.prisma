@@ -50,6 +50,8 @@ enum OrderSource {
   KEETA
   SNOONU
   TALABAT
+  RAFEEQ
+  DELIVEROO
 }
 
 // ---------- Staff ----------
@@ -271,4 +273,26 @@ model Setting {
   key   String @id
   value String
   updatedAt DateTime @updatedAt
+}
+
+// ---------- Delivery platform integrations ----------
+// Per-platform credentials (secrets stored encrypted at rest). One row per
+// platform: SNOONU | TALABAT | KEETA | RAFEEQ | DELIVEROO.
+
+model PlatformIntegration {
+  id            Int      @id @default(autoincrement())
+  platform      String   @unique
+  enabled       Boolean  @default(false)
+  storeId       String? // vendor/store/branch id on the platform
+  brandId       String?
+  baseUrl       String? // platform API base URL
+
+  apiKeyEnc        String? // encrypted API key
+  apiSecretEnc     String? // encrypted API secret
+  webhookSecretEnc String? // encrypted inbound webhook secret
+
+  config     Json? // extra per-platform settings
+  lastSyncAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

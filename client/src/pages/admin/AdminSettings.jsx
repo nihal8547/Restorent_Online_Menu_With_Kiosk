@@ -4,6 +4,7 @@ import { Toast, Spinner } from "../../components/ui.jsx";
 import { useAuth } from "../../store/auth.js";
 import { useSettings } from "../../store/settings.js";
 import { User, Store, MessageCircle, Phone, Save, Receipt } from "lucide-react";
+import DeliveryIntegrations from "../../components/admin/DeliveryIntegrations.jsx";
 
 export default function AdminSettings() {
   const { user } = useAuth();
@@ -295,6 +296,9 @@ export default function AdminSettings() {
         </div>
 
       </div>
+
+      {/* DELIVERY PARTNER INTEGRATIONS (full width) */}
+      <DeliveryIntegrations onToast={setToast} />
 
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>

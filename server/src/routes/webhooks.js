@@ -1,26 +1,34 @@
 import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { createOrder } from "./orders.js";
+import { getIntegration } from "./integrations.js";
+import { safeEqual } from "../utils/crypto.js";
 
 const router = Router();
 
-const WEBHOOK_SECRET = process.env.PLATFORM_WEBHOOK_SECRET || "";
-const SUPPORTED = { keeta: "KEETA", snoonu: "SNOONU", talabat: "TALABAT" };
+const ENV_FALLBACK_SECRET = process.env.PLATFORM_WEBHOOK_SECRET || "";
+const SUPPORTED = {
+  keeta: "KEETA",
+  snoonu: "SNOONU",
+  talabat: "TALABAT",
+  rafeeq: "RAFEEQ",
+  deliveroo: "DELIVEROO",
+};
 
 /**
- * Generic adapter layer for delivery platforms (Keeta / Snoonu / Talabat).
+ * Delivery platform webhook receiver (Snoonu / Talabat / Keeta / Rafeeq / Deliveroo).
  *
- * Each platform posts its own JSON shape; a real integration would map their
- * fields precisely. Here we accept a normalised body so the pipeline is ready:
+ * Each platform is configured in Admin → Settings → Delivery Partners with its own
+ * API key and webhook secret (stored encrypted). Incoming requests must carry the
+ * matching secret in `x-webhook-secret`, and the integration must be enabled.
+ *
+ * Body is a normalised shape (map each platform's real payload to this in their
+ * adapter):
  *   {
- *     externalId: "PLATFORM-123",
- *     customer: { name, phone },
- *     delivery: { name, phone, street, buildingNo, room?, zone },
- *     items: [{ menuItemId, qty, note? }],
- *     note?: "..."
+ *     externalId, customer:{name,phone},
+ *     delivery:{name,phone,street,buildingNo,room?,zone},
+ *     items:[{menuItemId,qty,note?}], note?
  *   }
- *
- * Security: requires header  x-webhook-secret: <PLATFORM_WEBHOOK_SECRET>
  */
 router.post("/:platform", async (req, res, next) => {
   try {
@@ -28,7 +36,16 @@ router.post("/:platform", async (req, res, next) => {
     const source = SUPPORTED[key];
     if (!source) return res.status(404).json({ error: "Unknown platform" });
 
-    if (!WEBHOOK_SECRET || req.headers["x-webhook-secret"] !== WEBHOOK_SECRET) {
+    // Look up the configured integration for this platform.
+    const integration = await getIntegration(source);
+    if (!integration || !integration.enabled) {
+      return res.status(403).json({ error: `${source} integration is not enabled` });
+    }
+
+    // Validate the webhook secret (per-platform stored secret; env as fallback).
+    const provided = req.headers["x-webhook-secret"];
+    const expected = integration.webhookSecret || ENV_FALLBACK_SECRET;
+    if (!expected || !safeEqual(provided, expected)) {
       return res.status(401).json({ error: "Invalid webhook signature" });
     }
 
