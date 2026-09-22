@@ -32,12 +32,14 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <form onSubmit={submit} className="card w-full max-w-sm p-6">
-        <div className="mb-5 text-center">
-          <div className="text-4xl">🍽️</div>
-          <h1 className="mt-1 text-xl font-bold text-brand">Enikk Vendya</h1>
-          <p className="text-sm text-gray-500">Staff Login</p>
+    <div className="flex min-h-screen items-center justify-center bg-ink px-4">
+      <form onSubmit={submit} className="card w-full max-w-sm p-7">
+        <div className="mb-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-ink text-2xl">
+            🔐
+          </div>
+          <h1 className="display mt-3 text-xl font-semibold text-ink">Staff Portal</h1>
+          <p className="text-sm text-gray-500">Enikk Vendya · authorized access</p>
         </div>
         <div className="space-y-3">
           <div>

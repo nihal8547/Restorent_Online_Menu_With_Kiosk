@@ -36,18 +36,20 @@ export default function Menu() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="mx-auto max-w-lg pb-28">
-      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-4 py-3">
+    <div className="mx-auto min-h-screen max-w-lg bg-cream pb-28">
+      <header className="sticky top-0 z-30 bg-ink px-4 py-4 text-white shadow-soft">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-brand">🍽️ Menu</h1>
+            <Link to="/" className="display text-lg font-semibold">
+              Enikk Vendya
+            </Link>
             {table ? (
-              <p className="text-xs text-emerald-600">Dine-in · Table {table.tableNo}</p>
+              <p className="mt-0.5 text-xs text-gold">Dine-in · Table {table.tableNo}</p>
             ) : (
-              <p className="text-xs text-gray-500">Takeaway / Delivery</p>
+              <p className="mt-0.5 text-xs text-white/60">Takeaway / Delivery</p>
             )}
           </div>
-          <Link to="/history" className="text-xs text-gray-500 underline">
+          <Link to="/history" className="text-xs text-white/70 underline underline-offset-2">
             My orders
           </Link>
         </div>
