@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { api, money } from "../../api.js";
+import { api, money, simulatePartnerOrders } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
 import { Spinner, Empty, StatusBadge, TypeBadge, PlatformBadge, Toast } from "../../components/ui.jsx";
 import { printKOT } from "../../utils/kot.js";
@@ -83,7 +83,7 @@ export default function Kitchen() {
   const simulateOrders = async (platform = "ALL") => {
     setSimulating(true);
     try {
-      const { data } = await api.post("/integrations/simulate", { platform });
+      const data = await simulatePartnerOrders(platform);
       setToast(data.message || `Simulated ${data.count} partner orders!`);
       await load();
     } catch (e) {

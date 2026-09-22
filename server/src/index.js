@@ -2,7 +2,21 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import http from "http";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { Server as SocketServer } from "socket.io";
+
+// ---- Production safety: refuse to boot with insecure secret defaults ----
+const IS_PROD = process.env.NODE_ENV === "production";
+if (IS_PROD) {
+  const missing = [];
+  if (!process.env.JWT_SECRET) missing.push("JWT_SECRET");
+  if (!process.env.INTEGRATION_ENC_KEY) missing.push("INTEGRATION_ENC_KEY");
+  if (missing.length) {
+    console.error(`FATAL: missing required secrets in production: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+}
 
 import { setIo } from "./socket.js";
 import authRoutes from "./routes/auth.js";
@@ -23,7 +37,6 @@ import assistanceRoutes from "./routes/assistance.js";
 import inventoryRoutes from "./routes/inventory.js";
 import accountingRoutes from "./routes/accounting.js";
 import integrationRoutes from "./routes/integrations.js";
-import mappingRoutes from "./routes/mapping.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -35,8 +48,20 @@ const server = http.createServer(app);
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
+// Security headers. crossOriginResourcePolicy relaxed so the SPA on another
+// origin can load uploaded images.
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN.split(","), credentials: true }));
 app.use(express.json({ limit: "1mb" }));
+app.set("trust proxy", 1); // correct client IPs behind a reverse proxy (for rate limiting)
+
+// Rate limiters: strict on auth (brute-force) and webhooks (abuse), lighter elsewhere.
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+const webhookLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false });
+app.use("/api/auth", authLimiter);
+app.use("/api/webhooks", webhookLimiter);
+app.use("/api", apiLimiter);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ ok: true, service: "zafran", time: new Date() }));
@@ -60,7 +85,6 @@ app.use("/api/assistance", assistanceRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/accounting", accountingRoutes);
 app.use("/api/integrations", integrationRoutes);
-app.use("/api/mapping", mappingRoutes);
 
 // Serve static files from the uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));

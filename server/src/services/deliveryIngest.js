@@ -43,26 +43,3 @@ export async function ingestPlatformOrder(platform, body) {
   await prisma.platformOrder.update({ where: { id: log.id }, data: { mappedOrderId: order.id } });
   return { status: 201, ok: true, orderNo: order.orderNo, orderId: order.id };
 }
-
-/**
- * Re-process any platform orders that were logged but not turned into orders.
- * With the external model this is normally a no-op (every order is created on
- * arrival), kept for the Menu-Mapping approve flow to call safely.
- */
-export async function reprocessFailed(platform) {
-  const failed = await prisma.platformOrder.findMany({
-    where: { platform, mappedOrderId: null },
-    orderBy: { createdAt: "asc" },
-    take: 100,
-  });
-  let created = 0;
-  for (const f of failed) {
-    try {
-      const r = await ingestPlatformOrder(platform, f.payload);
-      if (r.status === 201) created++;
-    } catch {
-      /* skip and continue */
-    }
-  }
-  return created;
-}

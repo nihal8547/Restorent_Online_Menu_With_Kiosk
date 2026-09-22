@@ -29,3 +29,7 @@ server/prisma/migrations/dev.db*
 # Uploads (local dev)
 server/uploads/*
 !server/uploads/.gitkeep
+
+# Vite temp files
+*.timestamp-*.mjs
+vite.config.js.timestamp-*

@@ -27,7 +27,6 @@ import Reports from "./pages/admin/Reports.jsx";
 import Waiters from "./pages/admin/Waiters.jsx";
 import Inventory from "./pages/admin/Inventory.jsx";
 // import Accounting from "./pages/admin/Accounting.jsx"; // Cancelled/Hidden module
-import MenuMapping from "./pages/admin/MenuMapping.jsx";
 import AdminSettings from "./pages/admin/AdminSettings.jsx";
 
 export default function App() {
@@ -91,7 +90,6 @@ export default function App() {
         <Route path="/admin/waiters" element={<Waiters />} />
         <Route path="/admin/inventory" element={<Inventory />} />
         {/* <Route path="/admin/accounting" element={<Accounting />} /> */}
-        <Route path="/admin/mapping" element={<MenuMapping />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>
 

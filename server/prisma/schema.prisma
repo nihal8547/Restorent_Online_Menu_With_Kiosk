@@ -100,43 +100,8 @@ model MenuItem {
   orderItems     OrderItem[]
   banners        Banner[]
   stockMovements StockMovement[]
-  platformMaps   PlatformItemMap[]
 
   @@index([categoryId])
-}
-
-// ---------- Delivery platform SKU ↔ menu item mapping ----------
-// Each delivery platform sends its own product code (SKU/PLU). This maps that
-// code to our menu item, per platform.
-
-model PlatformItemMap {
-  id         Int      @id @default(autoincrement())
-  platform   String // TALABAT | SNOONU | KEETA | RAFEEQ | DELIVEROO
-  sku        String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  menuItemId Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([platform, sku])
-  @@index([menuItemId])
-}
-
-// Auto-learned SKU suggestions from incoming delivery orders. When an order
-// arrives with an unmapped SKU, we record it here with the platform's product
-// name and a best-guess menu item, so the admin can approve it in one click.
-
-model PlatformSkuSuggestion {
-  id                  Int      @id @default(autoincrement())
-  platform            String
-  sku                 String
-  name                String? // product name as sent by the platform
-  suggestedMenuItemId Int?
-  seenCount           Int      @default(1)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  @@unique([platform, sku])
 }
 
 // ---------- Inventory movement log ----------

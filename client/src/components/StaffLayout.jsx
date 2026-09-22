@@ -118,7 +118,6 @@ const NAV_CONFIG = {
     { to: "/kitchen", label: "Kitchen Live", icon: "kitchen", badge: "Live" },
     { to: "/admin/waiters", label: "Waiters Staff", icon: "waiters", badge: "Staff" },
     { to: "/admin/menu", label: "Menu Items", icon: "menu" },
-    { to: "/admin/mapping", label: "Menu Mapping", icon: "menu", badge: "Delivery" },
     { to: "/admin/tables", label: "Tables & QR", icon: "tables" },
     { to: "/admin/inventory", label: "Inventory", icon: "tables", badge: "Stock" },
     { to: "/admin/customers", label: "Customers", icon: "customers" },

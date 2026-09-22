@@ -14,7 +14,8 @@
 // The adapters are written defensively (they accept several common field names)
 // because exact field names differ per integration contract. When you receive a
 // platform's real API docs, tighten the field paths in that platform's adapter.
-// SKUs are resolved to menu items later, via the PlatformItemMap table.
+// Line items (name / price / qty) are used as-is to create external orders — no
+// internal menu link is required.
 
 // Return the first defined, non-empty value among the given paths.
 function pick(obj, ...paths) {

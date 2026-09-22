@@ -162,9 +162,13 @@ router.post("/:platform/test", ...adminOnly, async (req, res, next) => {
   }
 });
 
-// POST /api/integrations/simulate — generate sample API webhook orders for demonstration
+// POST /api/integrations/simulate — generate sample API webhook orders for demonstration.
+// Disabled in production (unless ALLOW_SIMULATE=1) so demo data never pollutes live books.
 router.post("/simulate", ...adminOnly, async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_SIMULATE !== "1") {
+      return res.status(403).json({ error: "Order simulation is disabled in production" });
+    }
     const { platform = "ALL" } = req.body || {};
     const targets = platform === "ALL" 
       ? ["TALABAT", "SNOONU", "KEETA", "RAFEEQ", "DELIVEROO"]

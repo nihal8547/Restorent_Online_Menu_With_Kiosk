@@ -24,3 +24,9 @@ export const money = (n) => {
   const currency = useSettings.getState().currency;
   return `${currency} ${Number(n || 0).toFixed(2)}`;
 };
+
+// Create sample delivery-partner orders (demo/testing). Shared by Kitchen & Billing.
+export async function simulatePartnerOrders(platform = "ALL") {
+  const { data } = await api.post("/integrations/simulate", { platform });
+  return data;
+}
