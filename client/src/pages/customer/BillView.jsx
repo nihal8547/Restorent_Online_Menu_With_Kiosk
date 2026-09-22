@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { Spinner } from "../../components/ui.jsx";
 
 export default function BillView() {
   const { orderToken } = useParams();
+  const [searchParams] = useSearchParams();
+  const merged = searchParams.get("merged") === "1";
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +38,11 @@ export default function BillView() {
         <div className="text-5xl">🧾</div>
         <h1 className="mt-3 text-xl font-bold">Order {state.orderNo}</h1>
         <p className="mt-1 text-sm text-gray-500">Status: {state.status}</p>
+        {merged && (
+          <div className="mx-auto mt-4 max-w-xs rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
+            ✓ Added to your table's running bill
+          </div>
+        )}
         <div className="card mt-5 p-5 text-sm text-gray-600">{state.message}</div>
         <button className="btn-outline mt-4" onClick={load}>
           Refresh

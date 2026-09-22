@@ -10,6 +10,7 @@ export default function Checkout() {
   const table = JSON.parse(sessionStorage.getItem("ev_table") || "null");
 
   const [type, setType] = useState(table ? "DINE_IN" : "TAKEAWAY");
+  const [tableNo, setTableNo] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [delivery, setDelivery] = useState({
@@ -44,7 +45,10 @@ export default function Checkout() {
         note,
         customerPhone: type === "DELIVERY" ? delivery.phone : phone,
       };
-      if (type === "DINE_IN") payload.tableToken = table?.token;
+      if (type === "DINE_IN") {
+        if (table) payload.tableToken = table.token; // QR scanned → auto table
+        else payload.tableNo = tableNo.trim(); // manual table number
+      }
       if (type === "DELIVERY") payload.delivery = delivery;
 
       const { data } = await api.post("/orders", payload);
@@ -52,7 +56,8 @@ export default function Checkout() {
       // Remember phone for history convenience
       const savePhone = type === "DELIVERY" ? delivery.phone : phone;
       if (savePhone) localStorage.setItem("ev_phone", savePhone);
-      navigate(`/order/${data.orderToken}`);
+      // If it merged into the table's running bill, let the bill page announce it.
+      navigate(`/order/${data.orderToken}${data.merged ? "?merged=1" : ""}`);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -61,8 +66,9 @@ export default function Checkout() {
   };
 
   const canSubmit =
-    type !== "DELIVERY" ||
-    (delivery.name && delivery.phone && delivery.street && delivery.buildingNo && delivery.zone);
+    (type === "DINE_IN" && !table ? !!tableNo.trim() : true) &&
+    (type !== "DELIVERY" ||
+      (delivery.name && delivery.phone && delivery.street && delivery.buildingNo && delivery.zone));
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
@@ -97,16 +103,36 @@ export default function Checkout() {
       <div className="mt-5">
         <label className="label">Order type</label>
         <div className="flex gap-2">
-          {(table ? ["DINE_IN"] : ["TAKEAWAY", "DELIVERY"]).map((t) => (
+          {(table ? ["DINE_IN"] : ["DINE_IN", "TAKEAWAY", "DELIVERY"]).map((t) => (
             <button
               key={t}
               onClick={() => setType(t)}
               className={`btn flex-1 ${type === t ? "bg-brand text-white" : "border border-gray-300 bg-white"}`}
             >
-              {t === "DINE_IN" ? `Dine-in · T${table?.no}` : t === "TAKEAWAY" ? "Takeaway" : "Delivery"}
+              {t === "DINE_IN" ? (table ? `Dine-in · T${table?.no}` : "Dine-in") : t === "TAKEAWAY" ? "Takeaway" : "Delivery"}
             </button>
           ))}
         </div>
+        {/* QR scanned → table auto-fetched. No QR + dine-in → ask for table number. */}
+        {type === "DINE_IN" && !table && (
+          <div className="mt-3">
+            <label className="label">Table number</label>
+            <input
+              className="input"
+              placeholder="e.g. 5"
+              value={tableNo}
+              onChange={(e) => setTableNo(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              New items for the same table are added to that table's running bill.
+            </p>
+          </div>
+        )}
+        {type === "DINE_IN" && table && (
+          <p className="mt-2 text-xs text-emerald-600">
+            Table {table.no} auto-detected from QR · new items join this table's bill.
+          </p>
+        )}
       </div>
 
       {/* Contact / delivery */}

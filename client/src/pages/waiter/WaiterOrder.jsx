@@ -49,13 +49,13 @@ export default function WaiterOrder() {
     if (type === "DINE_IN" && !tableId) return setToast("Select a table");
     setSubmitting(true);
     try {
-      await api.post("/orders/staff", {
+      const { data } = await api.post("/orders/staff", {
         type,
         tableId: type === "DINE_IN" ? Number(tableId) : undefined,
         cart: cart.map((i) => ({ menuItemId: i.menuItemId, qty: i.qty })),
         note,
       });
-      setToast("Order placed ✓");
+      setToast(data.merged ? "Added to table's running bill ✓" : "Order placed ✓");
       setCart([]);
       setNote("");
       setTimeout(() => navigate("/waiter/orders"), 600);
