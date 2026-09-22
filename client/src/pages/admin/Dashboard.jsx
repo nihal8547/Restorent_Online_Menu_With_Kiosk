@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { Spinner } from "../../components/ui.jsx";
 import { subscribeGlobal } from "../../socket.js";
+import { useCoalescedCallback } from "../../hooks.js";
 import { UtensilsCrossed, QrCode, Receipt, BarChart3, AlertCircle } from "lucide-react";
 
 export default function Dashboard() {
@@ -22,15 +23,11 @@ export default function Dashboard() {
     load();
   }, [load]);
 
-  // Real-time: refresh on new orders or payments
+  // Real-time: refresh on new orders or payments (bursts coalesced into one refetch)
+  const refresh = useCoalescedCallback(load, 500);
   useEffect(() => {
-    const refresh = () => load();
-    return subscribeGlobal({
-      onNew: refresh,
-      onUpdated: refresh,
-      onPayment: refresh,
-    });
-  }, [load]);
+    return subscribeGlobal({ onNew: refresh, onUpdated: refresh, onPayment: refresh });
+  }, [refresh]);
 
   if (!report) return <Spinner />;
 

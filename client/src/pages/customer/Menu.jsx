@@ -5,6 +5,7 @@ import { useCart } from "../../store/cart.js";
 import { useSettings } from "../../store/settings.js";
 import { Spinner, Empty } from "../../components/ui.jsx";
 import { BRAND } from "../../config.js";
+import { useDebounce } from "../../hooks.js";
 import AssistanceDongle from "../../components/customer/AssistanceDongle.jsx";
 
 export default function Menu() {
@@ -63,9 +64,12 @@ export default function Menu() {
     }
   }, [searchOpen]);
 
+  // Debounce the search text so filtering runs after typing settles.
+  const debouncedQuery = useDebounce(searchQuery, 200);
+
   // Filtered categories and items based on search and category tab
   const displayedCategories = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
 
     return categories
       .map((cat) => {
@@ -91,7 +95,7 @@ export default function Menu() {
         };
       })
       .filter(Boolean);
-  }, [categories, searchQuery, activeCatId]);
+  }, [categories, debouncedQuery, activeCatId]);
 
   // Total count of matching items
   const totalFound = useMemo(() => {
@@ -214,7 +218,7 @@ export default function Menu() {
                 onClick={() => setSelectedBanner(b)}
               >
                 <div className="relative h-36 sm:h-44 w-full rounded-2xl overflow-hidden shadow-md">
-                  <img src={b.photoUrl} alt={b.title || "Offer"} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                  <img loading="lazy" decoding="async" src={b.photoUrl} alt={b.title || "Offer"} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                   <div className="absolute bottom-3 left-3 text-white">
                     {b.subtitle && <p className="text-xs font-bold uppercase tracking-wider text-brand-light drop-shadow-lg">{b.subtitle}</p>}
@@ -326,12 +330,14 @@ export default function Menu() {
                 return (
                   <div
                     key={item.id}
-                    className="card flex flex-col overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200"
+                    className="cv-auto card flex flex-col overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200"
                   >
                     {/* Item Image with Fallback */}
                     <div className="relative h-28 w-full bg-slate-900 overflow-hidden">
                       {item.photoUrl ? (
                         <img
+                          loading="lazy"
+                          decoding="async"
                           src={item.photoUrl}
                           alt={item.name}
                           className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
@@ -429,7 +435,7 @@ export default function Menu() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-3xl bg-white overflow-hidden shadow-2xl animate-fade-up">
             <div className="relative h-48 w-full bg-slate-100">
-              <img src={selectedBanner.photoUrl} alt="Offer" className="h-full w-full object-cover" />
+              <img loading="lazy" decoding="async" src={selectedBanner.photoUrl} alt="Offer" className="h-full w-full object-cover" />
               <button 
                 onClick={() => setSelectedBanner(null)}
                 className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-black/70 transition"

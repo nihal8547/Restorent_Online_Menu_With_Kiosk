@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money, simulatePartnerOrders } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
+import { useCoalescedCallback } from "../../hooks.js";
 import { Spinner, Empty, StatusBadge, TypeBadge, PlatformBadge, Toast } from "../../components/ui.jsx";
 import FastPOS from "../../components/admin/FastPOS.jsx";
 import { Printer, Sparkles, MapPin, Phone } from "lucide-react";
@@ -50,11 +51,11 @@ export default function Billing() {
     load();
   }, [load]);
 
-  // Real-time order socket subscription
+  // Real-time order socket subscription (bursts coalesced into one refetch)
+  const refresh = useCoalescedCallback(load, 500);
   useEffect(() => {
-    const refresh = () => load();
     return subscribeOrders("admin", { onNew: refresh, onUpdated: refresh });
-  }, [load]);
+  }, [refresh]);
 
   const openPay = (o) => {
     setActive(o);

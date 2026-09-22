@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { api } from "../../api.js";
 import { Spinner, Toast } from "../../components/ui.jsx";
 import { subscribeOrders } from "../../socket.js";
+import { useCoalescedCallback } from "../../hooks.js";
 
 export default function Tables() {
   const [tables, setTables] = useState([]);
@@ -20,11 +21,11 @@ export default function Tables() {
     load();
   }, [load]);
 
-  // Real-time: refresh tables when orders change (table occupancy updates)
+  // Real-time: refresh tables when orders change (bursts coalesced into one refetch)
+  const refresh = useCoalescedCallback(load, 500);
   useEffect(() => {
-    const refresh = () => load();
     return subscribeOrders("admin", { onNew: refresh, onUpdated: refresh });
-  }, [load]);
+  }, [refresh]);
 
   const addTable = async () => {
     if (!newNo.trim()) return;

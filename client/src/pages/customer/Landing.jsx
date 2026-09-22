@@ -95,7 +95,7 @@ export default function Landing() {
             >
               <div className="flex h-28 items-center justify-center overflow-hidden bg-gradient-to-br from-ink to-ink-soft sm:h-40">
                 {item.photoUrl ? (
-                  <img src={item.photoUrl} alt={item.name} className="h-full w-full object-cover transition group-hover:scale-105" />
+                  <img loading="lazy" decoding="async" src={item.photoUrl} alt={item.name} className="h-full w-full object-cover transition group-hover:scale-105" />
                 ) : (
                   <span className="text-gray-400 opacity-80"><Utensils className="w-12 h-12" /></span>
                 )}

@@ -185,9 +185,9 @@ export default function Kitchen() {
           const isPlatform = o.source && o.source !== "IN_HOUSE";
 
           return (
-            <div 
-              key={o.id} 
-              className={`card flex flex-col p-4 border transition duration-150 ${
+            <div
+              key={o.id}
+              className={`cv-auto card flex flex-col p-4 border transition duration-150 ${
                 isPlatform 
                   ? "border-amber-300 bg-amber-50/15 shadow-sm" 
                   : "border-slate-200 bg-white shadow-sm"

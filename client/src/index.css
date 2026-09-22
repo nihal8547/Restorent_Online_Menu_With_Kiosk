@@ -197,3 +197,9 @@ body {
 }
 
 
+
+/* Long-list perf: browser skips rendering off-screen items (near-zero risk). */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 260px;
+}
