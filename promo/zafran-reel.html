@@ -1,0 +1,481 @@
+<title>Zafran Promo Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap">
+<style>
+  :root{
+    --espresso:#0E0B08;
+    --espresso-2:#171009;
+    --saffron:#F7A81B;
+    --saffron-hi:#FFC24D;
+    --amber:#E8720C;
+    --cream:#FBF3E6;
+    --cream-dim:#C9BBA6;
+    --line:rgba(247,168,27,.16);
+    --ok:#48C78E;
+    --stage-max:980px;
+    color-scheme: dark;
+    --font:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:var(--font);
+    background:
+      radial-gradient(120% 90% at 15% -10%, #2a1a08 0%, transparent 55%),
+      radial-gradient(120% 90% at 95% 110%, #331d05 0%, transparent 55%),
+      var(--espresso);
+    color:var(--cream);
+    min-height:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:24px 16px;gap:18px;overflow-x:hidden;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage-wrap{width:100%;max-width:var(--stage-max);}
+  .stage{
+    position:relative;width:100%;aspect-ratio:16/9;border-radius:20px;overflow:hidden;
+    background:
+      radial-gradient(90% 120% at 20% 0%, #241605 0%, transparent 60%),
+      linear-gradient(160deg,#140d06 0%,#0b0805 100%);
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.8), inset 0 0 0 1px rgba(247,168,27,.10);
+    isolation:isolate;
+  }
+  .stage::after{ /* film grain / vignette */
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:40;
+    background:radial-gradient(130% 130% at 50% 50%, transparent 58%, rgba(0,0,0,.55) 100%);
+    mix-blend-mode:multiply;
+  }
+
+  /* ambient drifting glow */
+  .aura{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;z-index:0;}
+  .aura.a1{width:46%;height:70%;left:-10%;top:-20%;background:radial-gradient(circle,#F7A81B55,transparent 70%);animation:drift1 14s ease-in-out infinite;}
+  .aura.a2{width:44%;height:66%;right:-12%;bottom:-24%;background:radial-gradient(circle,#E8720C55,transparent 70%);animation:drift2 16s ease-in-out infinite;}
+  @keyframes drift1{50%{transform:translate(18%,14%) scale(1.15)}}
+  @keyframes drift2{50%{transform:translate(-16%,-12%) scale(1.12)}}
+
+  /* particles */
+  .particles{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+  .particles i{position:absolute;bottom:-8px;width:5px;height:5px;border-radius:50%;
+    background:radial-gradient(circle,var(--saffron-hi),transparent 70%);opacity:0;
+    animation:rise linear infinite;}
+  @keyframes rise{
+    0%{transform:translateY(0) scale(.6);opacity:0}
+    12%{opacity:.9}
+    100%{transform:translateY(-110%) scale(1);opacity:0}
+  }
+
+  /* ---------- Scenes ---------- */
+  .scene{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    padding:6% 7%;opacity:0;transform:scale(1.015);
+    transition:opacity .6s ease, transform .8s ease;pointer-events:none;}
+  .scene.active{opacity:1;transform:scale(1);}
+
+  .eyebrow{font-size:clamp(9px,1.5vw,13px);font-weight:600;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--saffron);opacity:0;}
+  .headline{font-weight:800;line-height:1.02;letter-spacing:-.02em;
+    font-size:clamp(24px,5.4vw,54px);text-wrap:balance;margin:.35em 0 .18em;}
+  .sub{font-weight:400;color:var(--cream-dim);font-size:clamp(11px,2vw,17px);
+    max-width:34ch;text-wrap:balance;opacity:0;}
+
+  .scene.active .rise-1{animation:up .7s .05s cubic-bezier(.16,1,.3,1) both}
+  .scene.active .rise-2{animation:up .7s .18s cubic-bezier(.16,1,.3,1) both}
+  .scene.active .rise-3{animation:up .7s .32s cubic-bezier(.16,1,.3,1) both}
+  @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ===== Scene 1 — Brand ===== */
+  #s1 .mark{display:flex;align-items:center;gap:.28em;justify-content:center}
+  #s1 .logo{font-weight:800;letter-spacing:-.03em;font-size:clamp(40px,10vw,104px);
+    background:linear-gradient(180deg,#FFDFA0,var(--saffron) 55%,var(--amber));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 8px 30px rgba(247,168,27,.35));}
+  #s1 .dot{width:.16em;height:.16em;border-radius:50%;background:var(--saffron);
+    align-self:flex-end;margin-bottom:.28em;box-shadow:0 0 22px var(--saffron)}
+  #s1.active .logo{animation:logoIn 1s .1s cubic-bezier(.16,1,.3,1) both}
+  #s1.active .dot{animation:pop .5s .85s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes logoIn{from{opacity:0;transform:translateY(26px) scale(.94);filter:blur(10px)}
+    to{opacity:1;transform:none;filter:blur(0)}}
+  @keyframes pop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+  #s1 .tag{margin-top:.7em;font-weight:500;letter-spacing:.3em;text-transform:uppercase;
+    font-size:clamp(10px,2vw,16px);color:var(--cream-dim)}
+  #s1 .ring{position:absolute;width:60%;aspect-ratio:1;border-radius:50%;
+    border:1px solid var(--line);z-index:2;}
+  #s1.active .ring{animation:ringPulse 2.4s ease-out infinite}
+  @keyframes ringPulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+
+  /* ===== phone mock (scene 2) ===== */
+  .phone{width:clamp(130px,20vw,190px);aspect-ratio:9/18.5;border-radius:26px;
+    background:linear-gradient(160deg,#1c130a,#0d0906);padding:9px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.7),inset 0 0 0 1.5px rgba(247,168,27,.22);
+    position:relative}
+  .phone .screen{width:100%;height:100%;border-radius:18px;background:#120c07;
+    overflow:hidden;display:flex;flex-direction:column}
+  .phone .bar{height:20px;background:linear-gradient(90deg,var(--amber),var(--saffron));
+    display:flex;align-items:center;padding:0 8px;font-size:7px;font-weight:700;color:#1a1205;
+    letter-spacing:.08em}
+  .grid2{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;align-content:start}
+  .mcard{background:#1b120a;border-radius:9px;overflow:hidden;border:1px solid var(--line);
+    opacity:0;transform:translateY(10px) scale(.96)}
+  .mcard .img{height:26px;background:linear-gradient(135deg,#3a2409,#20140a)}
+  .mcard .t{font-size:6px;font-weight:600;padding:4px 5px 0;color:var(--cream)}
+  .mcard .p{font-size:6px;font-weight:700;padding:1px 5px 5px;color:var(--saffron)}
+  #s2.active .mcard{animation:cardIn .5s cubic-bezier(.16,1,.3,1) both}
+  #s2.active .mcard:nth-child(1){animation-delay:.35s}
+  #s2.active .mcard:nth-child(2){animation-delay:.45s}
+  #s2.active .mcard:nth-child(3){animation-delay:.55s}
+  #s2.active .mcard:nth-child(4){animation-delay:.65s}
+  #s2.active .mcard:nth-child(5){animation-delay:.75s}
+  #s2.active .mcard:nth-child(6){animation-delay:.85s}
+  @keyframes cardIn{to{opacity:1;transform:none}}
+  .scan{position:absolute;left:9px;right:9px;top:9px;height:3px;border-radius:3px;
+    background:linear-gradient(90deg,transparent,var(--saffron-hi),transparent);
+    box-shadow:0 0 16px var(--saffron);z-index:3}
+  #s2.active .scan{animation:scan 1.1s ease-in-out 1 both}
+  @keyframes scan{0%{top:9px;opacity:1}80%{opacity:1}100%{top:calc(100% - 12px);opacity:0}}
+
+  .split{display:flex;gap:clamp(16px,4vw,44px);align-items:center;justify-content:center;
+    flex-wrap:wrap;max-width:100%}
+  .copycol{text-align:left;max-width:min(46%,340px)}
+  @media(max-width:560px){.copycol{max-width:100%;text-align:center}}
+
+  /* ===== kitchen tickets (scene 3) ===== */
+  .kds{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;max-width:100%}
+  .ticket{width:clamp(96px,16vw,140px);background:#160f08;border-radius:12px;
+    border:1px solid var(--line);padding:9px;text-align:left;opacity:0;transform:translateY(18px)}
+  .ticket .th{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .ticket .no{font-weight:700;font-size:clamp(9px,1.6vw,12px)}
+  .chip{font-size:7px;font-weight:700;padding:2px 6px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+  .chip.new{background:#3a2a0855;color:var(--saffron-hi);border:1px solid var(--line)}
+  .chip.prep{background:#4a2c0855;color:var(--saffron)}
+  .chip.ready{background:#123626;color:var(--ok)}
+  .ticket .li{font-size:8px;color:var(--cream-dim);display:flex;justify-content:space-between;margin:3px 0}
+  .ticket .li b{color:var(--cream);font-weight:600}
+  #s3.active .ticket{animation:slideIn .6s cubic-bezier(.16,1,.3,1) both}
+  #s3.active .ticket:nth-child(1){animation-delay:.2s}
+  #s3.active .ticket:nth-child(2){animation-delay:.45s}
+  #s3.active .ticket:nth-child(3){animation-delay:.7s}
+  @keyframes slideIn{to{opacity:1;transform:none}}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;
+    box-shadow:0 0 0 0 rgba(72,199,142,.6);animation:live 1.6s infinite}
+  @keyframes live{70%{box-shadow:0 0 0 7px rgba(72,199,142,0)}}
+
+  /* ===== receipt (scene 4) ===== */
+  .receipt{width:clamp(150px,24vw,210px);background:var(--cream);color:#241a0d;
+    border-radius:10px;padding:14px 16px;text-align:left;
+    box-shadow:0 26px 50px -18px rgba(0,0,0,.7);opacity:0;transform:translateY(22px)}
+  #s4.active .receipt{animation:slideIn .7s .1s cubic-bezier(.16,1,.3,1) both}
+  .receipt .rh{text-align:center;border-bottom:1.5px dashed #cdbfa6;padding-bottom:7px;margin-bottom:7px}
+  .receipt .rh b{font-weight:800;font-size:13px;letter-spacing:.02em}
+  .receipt .rh span{display:block;font-size:6.5px;color:#8a7a5f;letter-spacing:.05em;margin-top:2px}
+  .receipt .row{display:flex;justify-content:space-between;font-size:8px;margin:3px 0;font-weight:500}
+  .receipt .row.tot{border-top:1.5px solid #241a0d;margin-top:7px;padding-top:6px;font-weight:800;font-size:11px}
+  .receipt .tax{font-size:6.5px;color:#8a7a5f;text-align:center;margin-top:8px;letter-spacing:.04em}
+  .receipt .paid{margin:8px auto 0;width:fit-content;border:2px solid var(--ok);color:#1c7a52;
+    font-weight:800;font-size:9px;letter-spacing:.14em;padding:2px 10px;border-radius:5px;
+    transform:rotate(-7deg);opacity:0}
+  #s4.active .receipt .paid{animation:stamp .4s 1s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes stamp{from{opacity:0;transform:rotate(-7deg) scale(1.8)}to{opacity:1;transform:rotate(-7deg) scale(1)}}
+  .pays{display:flex;gap:6px;margin-top:12px;justify-content:center;flex-wrap:wrap}
+  .pays span{font-size:8px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid var(--line);
+    color:var(--cream-dim);opacity:0}
+  #s4.active .pays span{animation:up .5s both}
+  #s4.active .pays span:nth-child(1){animation-delay:.6s}
+  #s4.active .pays span:nth-child(2){animation-delay:.72s}
+  #s4.active .pays span:nth-child(3){animation-delay:.84s}
+
+  /* ===== delivery chips (scene 5) ===== */
+  .partners{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:640px;margin-top:6px}
+  .pchip{display:flex;align-items:center;gap:8px;background:#160f08;border:1px solid var(--line);
+    border-radius:40px;padding:8px 16px;font-weight:600;font-size:clamp(11px,1.9vw,15px);
+    opacity:0;transform:scale(.85)}
+  .pchip .d{width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px currentColor}
+  #s5.active .pchip{animation:chipIn .5s cubic-bezier(.34,1.56,.64,1) both}
+  #s5.active .pchip:nth-child(1){animation-delay:.25s}
+  #s5.active .pchip:nth-child(2){animation-delay:.37s}
+  #s5.active .pchip:nth-child(3){animation-delay:.49s}
+  #s5.active .pchip:nth-child(4){animation-delay:.61s}
+  #s5.active .pchip:nth-child(5){animation-delay:.73s}
+  @keyframes chipIn{to{opacity:1;transform:scale(1)}}
+  .flowline{margin-top:16px;font-size:clamp(9px,1.6vw,12px);color:var(--saffron);font-weight:600;
+    letter-spacing:.05em;opacity:0}
+  #s5.active .flowline{animation:up .6s .95s both}
+
+  /* ===== feature grid + stats (scene 6) ===== */
+  .fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:640px}
+  @media(max-width:520px){.fgrid{grid-template-columns:repeat(2,1fr)}}
+  .ftile{background:#160f08;border:1px solid var(--line);border-radius:12px;padding:11px 10px;
+    text-align:left;opacity:0;transform:translateY(14px)}
+  .ftile .ic{font-size:15px;margin-bottom:5px;display:block}
+  .ftile b{font-size:clamp(9px,1.5vw,12px);font-weight:600;display:block}
+  .ftile span{font-size:clamp(7px,1.2vw,9px);color:var(--cream-dim)}
+  #s6.active .ftile{animation:slideIn .5s cubic-bezier(.16,1,.3,1) both}
+  #s6.active .ftile:nth-child(1){animation-delay:.1s}
+  #s6.active .ftile:nth-child(2){animation-delay:.17s}
+  #s6.active .ftile:nth-child(3){animation-delay:.24s}
+  #s6.active .ftile:nth-child(4){animation-delay:.31s}
+  #s6.active .ftile:nth-child(5){animation-delay:.38s}
+  #s6.active .ftile:nth-child(6){animation-delay:.45s}
+  .stats{display:flex;gap:clamp(14px,4vw,40px);margin-top:16px;justify-content:center;flex-wrap:wrap}
+  .stat b{display:block;font-weight:800;font-size:clamp(22px,4.4vw,40px);
+    background:linear-gradient(180deg,#FFDFA0,var(--saffron));-webkit-background-clip:text;
+    background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+  .stat span{font-size:clamp(8px,1.4vw,11px);color:var(--cream-dim);letter-spacing:.08em;text-transform:uppercase}
+
+  /* ===== outro (scene 7) ===== */
+  #s7 .logo2{font-weight:800;letter-spacing:-.03em;font-size:clamp(34px,8vw,80px);
+    background:linear-gradient(180deg,#FFDFA0,var(--saffron) 55%,var(--amber));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  #s7 .end{font-weight:500;color:var(--cream);font-size:clamp(12px,2.2vw,20px);margin-top:.2em}
+  #s7 .stack{margin-top:1.1em;font-size:clamp(8px,1.4vw,11px);color:var(--cream-dim);
+    letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+
+  /* ---------- Controls ---------- */
+  .controls{display:flex;align-items:center;gap:14px;width:100%;max-width:var(--stage-max)}
+  .btn{background:rgba(247,168,27,.12);border:1px solid var(--line);color:var(--cream);
+    font-family:var(--font);font-weight:600;font-size:13px;padding:9px 16px;border-radius:11px;
+    cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.2s}
+  .btn:hover{background:rgba(247,168,27,.22);border-color:var(--saffron)}
+  .btn:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
+  .track{flex:1;height:6px;border-radius:6px;background:rgba(247,168,27,.14);overflow:hidden}
+  .fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--amber),var(--saffron-hi))}
+  .time{font-size:12px;font-weight:600;color:var(--cream-dim);font-variant-numeric:tabular-nums;min-width:70px;text-align:right}
+  .label{font-size:12px;color:var(--cream-dim);font-weight:500}
+  .cap{text-align:center;color:var(--cream-dim);font-size:12px;max-width:var(--stage-max)}
+  .cap b{color:var(--saffron);font-weight:600}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation-duration:.001s!important;transition-duration:.001s!important}
+    .aura,.particles i{animation:none!important}
+  }
+</style>
+
+<div class="cap"><b>Zafran</b> — Restaurant OS · a 30-second product reel · scenes auto-play &amp; loop</div>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <div class="aura a1"></div>
+    <div class="aura a2"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- S1 Brand -->
+    <section class="scene" id="s1">
+      <div class="ring"></div>
+      <div class="mark"><span class="logo">Zafran</span><span class="dot"></span></div>
+      <div class="tag">Restaurant&nbsp;Operating&nbsp;System</div>
+    </section>
+
+    <!-- S2 QR ordering -->
+    <section class="scene" id="s2">
+      <div class="split">
+        <div class="phone">
+          <div class="screen">
+            <div class="bar">🍽 ZAFRAN · TABLE 07</div>
+            <div class="grid2">
+              <div class="mcard"><div class="img"></div><div class="t">Chicken Mandi</div><div class="p">QR 32</div></div>
+              <div class="mcard"><div class="img"></div><div class="t">Shawarma</div><div class="p">QR 12</div></div>
+              <div class="mcard"><div class="img"></div><div class="t">Alfaham ¼</div><div class="p">QR 24</div></div>
+              <div class="mcard"><div class="img"></div><div class="t">Hummus</div><div class="p">QR 10</div></div>
+              <div class="mcard"><div class="img"></div><div class="t">Mint Fresh</div><div class="p">QR 8</div></div>
+              <div class="mcard"><div class="img"></div><div class="t">Kunafa</div><div class="p">QR 15</div></div>
+            </div>
+          </div>
+          <div class="scan"></div>
+        </div>
+        <div class="copycol">
+          <div class="eyebrow rise-1">QR &amp; Kiosk Ordering</div>
+          <h2 class="headline rise-2">Scan. Order.<br>No app, no login.</h2>
+          <p class="sub rise-3">Every table gets its own QR. Guests browse a live menu — two cards a row on mobile — and send orders straight to the kitchen.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- S3 Kitchen -->
+    <section class="scene" id="s3">
+      <div class="eyebrow rise-1"><span class="pulse"></span>&nbsp; Realtime Kitchen Display</div>
+      <h2 class="headline rise-2">The kitchen sees it instantly.</h2>
+      <div class="kds" style="margin-top:14px">
+        <div class="ticket">
+          <div class="th"><span class="no">#1042</span><span class="chip new">New</span></div>
+          <div class="li"><span>2× Chicken Mandi</span><b>T07</b></div>
+          <div class="li"><span>1× Hummus</span><b>·</b></div>
+        </div>
+        <div class="ticket">
+          <div class="th"><span class="no">#1043</span><span class="chip prep">Preparing</span></div>
+          <div class="li"><span>1× Alfaham ½</span><b>T12</b></div>
+          <div class="li"><span>2× Mint Fresh</span><b>·</b></div>
+        </div>
+        <div class="ticket">
+          <div class="th"><span class="no">#1041</span><span class="chip ready">Ready</span></div>
+          <div class="li"><span>3× Shawarma</span><b>Delivery</b></div>
+          <div class="li"><span>1× Kunafa</span><b>·</b></div>
+        </div>
+      </div>
+      <p class="sub rise-3" style="margin-top:14px">Socket.IO pushes each order live · New → Preparing → Ready · auto-print KOT to the thermal printer.</p>
+    </section>
+
+    <!-- S4 Billing -->
+    <section class="scene" id="s4">
+      <div class="split">
+        <div class="receipt">
+          <div class="rh"><b>Zafran</b><span>TAX INVOICE · TRN 100xxxxxxxxxx03</span></div>
+          <div class="row"><span>Chicken Mandi ×2</span><span>64.00</span></div>
+          <div class="row"><span>Hummus ×1</span><span>10.00</span></div>
+          <div class="row"><span>Subtotal</span><span>74.00</span></div>
+          <div class="row"><span>VAT 5%</span><span>3.70</span></div>
+          <div class="row tot"><span>Total</span><span>QR 77.70</span></div>
+          <div class="paid">PAID</div>
+          <div class="tax">Invoice INV-000148 · Thank you!</div>
+        </div>
+        <div class="copycol">
+          <div class="eyebrow rise-1">Billing &amp; Compliance</div>
+          <h2 class="headline rise-2">Smart bills,<br>tax invoices, done.</h2>
+          <p class="sub rise-3">Sequential invoice numbers, automatic tax, running-tab merge for repeat table orders — and one-click exports to Tally, QuickBooks &amp; Zoho.</p>
+          <div class="pays"><span>💵 Cash</span><span>💳 Card</span><span>🌐 Online</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- S5 Delivery -->
+    <section class="scene" id="s5">
+      <div class="eyebrow rise-1">Delivery Partners — Wired For Real</div>
+      <h2 class="headline rise-2">Five platforms. One kitchen.</h2>
+      <div class="partners">
+        <div class="pchip"><span class="d" style="color:#FF5A1F"></span>Talabat</div>
+        <div class="pchip"><span class="d" style="color:#7C4DFF"></span>Snoonu</div>
+        <div class="pchip"><span class="d" style="color:#FFC400"></span>Keeta</div>
+        <div class="pchip"><span class="d" style="color:#00C48C"></span>Rafeeq</div>
+        <div class="pchip"><span class="d" style="color:#00CCBC"></span>Deliveroo</div>
+      </div>
+      <div class="flowline">Signed webhooks in ↓ · orders in Kitchen &amp; Billing · status pushed back ↑</div>
+    </section>
+
+    <!-- S6 Features + stats -->
+    <section class="scene" id="s6">
+      <div class="eyebrow rise-1" style="margin-bottom:12px">Everything a POS does — and more</div>
+      <div class="fgrid">
+        <div class="ftile"><span class="ic">📦</span><b>Inventory</b><span>Live stock &amp; low-stock alerts</span></div>
+        <div class="ftile"><span class="ic">📊</span><b>Reports</b><span>Sales, profit, item counts</span></div>
+        <div class="ftile"><span class="ic">👥</span><b>CRM</b><span>Customers by phone &amp; history</span></div>
+        <div class="ftile"><span class="ic">🧾</span><b>Accounting</b><span>Balanced journal · Tally XML</span></div>
+        <div class="ftile"><span class="ic">🧑‍🍳</span><b>Waiter App</b><span>Take &amp; place orders live</span></div>
+        <div class="ftile"><span class="ic">📱</span><b>PWA</b><span>Installable · works offline-ish</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b data-to="5">0</b><span>Delivery APIs</span></div>
+        <div class="stat"><b data-to="12">0</b><span>Modules</span></div>
+        <div class="stat"><b data-to="100" data-suf="%">0</b><span>Yours to own</span></div>
+      </div>
+    </section>
+
+    <!-- S7 Outro -->
+    <section class="scene" id="s7">
+      <div class="logo2 rise-1">Zafran</div>
+      <div class="end rise-2">Your complete restaurant OS.</div>
+      <div class="stack rise-3">React · Vite · Tailwind · Node · Express · Prisma · PostgreSQL · Socket.IO</div>
+    </section>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn" id="play" aria-label="Pause or play">⏸ Pause</button>
+  <button class="btn" id="replay" aria-label="Replay from start">↺ Replay</button>
+  <div class="track"><div class="fill" id="fill"></div></div>
+  <div class="time"><span id="cur">0.0</span>s / 30s</div>
+</div>
+<div class="label" id="scenelabel">Scene 1 — Brand</div>
+
+<script>
+(function(){
+  var DUR = 30000;
+  // [start, end, id, label]
+  var scenes = [
+    [0,     4200,  's1', '1 — Brand'],
+    [4200,  9200,  's2', '2 — QR Ordering'],
+    [9200,  14000, 's3', '3 — Kitchen'],
+    [14000, 19000, 's4', '4 — Billing'],
+    [19000, 24000, 's5', '5 — Delivery'],
+    [24000, 27800, 's6', '6 — Features'],
+    [27800, 30000, 's7', '7 — Outro']
+  ];
+  var els = scenes.map(function(s){ return document.getElementById(s[2]); });
+  var fill = document.getElementById('fill');
+  var cur = document.getElementById('cur');
+  var label = document.getElementById('scenelabel');
+  var playBtn = document.getElementById('play');
+  var replayBtn = document.getElementById('replay');
+
+  var startTs = null, pausedAt = 0, playing = true, raf = null, activeIdx = -1;
+  var counted = false;
+
+  function activate(i){
+    if(i === activeIdx) return;
+    activeIdx = i;
+    for(var k=0;k<els.length;k++) els[k].classList.toggle('active', k===i);
+    label.textContent = 'Scene ' + scenes[i][3];
+    if(scenes[i][2]==='s6'){ counted=false; runCounts(); }
+  }
+
+  function runCounts(){
+    if(counted) return; counted = true;
+    var nums = document.querySelectorAll('#s6 .stat b');
+    nums.forEach(function(n){
+      var to = parseInt(n.getAttribute('data-to'),10);
+      var suf = n.getAttribute('data-suf') || '';
+      var t0 = null, D = 1100;
+      function step(ts){
+        if(!t0) t0 = ts;
+        var p = Math.min(1,(ts-t0)/D);
+        var e = 1-Math.pow(1-p,3);
+        n.textContent = Math.round(to*e) + suf;
+        if(p<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  function frame(ts){
+    if(startTs===null) startTs = ts - pausedAt;
+    var t = (ts - startTs) % DUR;
+    // find scene
+    for(var i=0;i<scenes.length;i++){
+      if(t >= scenes[i][0] && t < scenes[i][1]){ activate(i); break; }
+    }
+    fill.style.width = (t/DUR*100) + '%';
+    cur.textContent = (t/1000).toFixed(1);
+    if(playing) raf = requestAnimationFrame(frame);
+  }
+
+  function play(){
+    playing = true; playBtn.textContent = '⏸ Pause';
+    startTs = null; raf = requestAnimationFrame(frame);
+  }
+  function pause(){
+    playing = false; playBtn.textContent = '▶ Play';
+    if(raf) cancelAnimationFrame(raf);
+    // remember position
+    pausedAt = parseFloat(cur.textContent)*1000;
+  }
+  playBtn.addEventListener('click', function(){ playing ? pause() : play(); });
+  replayBtn.addEventListener('click', function(){
+    pausedAt = 0; activeIdx = -1; counted = false;
+    // reset counts display
+    document.querySelectorAll('#s6 .stat b').forEach(function(n){ n.textContent='0'; });
+    if(raf) cancelAnimationFrame(raf);
+    play();
+  });
+
+  // particles
+  var pc = document.getElementById('particles');
+  for(var p=0;p<18;p++){
+    var i = document.createElement('i');
+    i.style.left = Math.random()*100 + '%';
+    i.style.animationDuration = (6+Math.random()*7) + 's';
+    i.style.animationDelay = (-Math.random()*10) + 's';
+    var sz = 3+Math.random()*4; i.style.width = sz+'px'; i.style.height = sz+'px';
+    pc.appendChild(i);
+  }
+
+  activate(0);
+  play();
+})();
+</script>
