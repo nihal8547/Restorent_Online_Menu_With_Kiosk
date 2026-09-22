@@ -32,6 +32,26 @@ export function TypeBadge({ value }) {
   return <span className="badge bg-gray-100 text-gray-600">{map[value] || value}</span>;
 }
 
+const PLATFORM_STYLES = {
+  TALABAT: "bg-[#FF5A00] text-white shadow-sm shadow-orange-500/20",
+  SNOONU: "bg-[#E30613] text-white shadow-sm shadow-red-500/20",
+  KEETA: "bg-[#FFD100] text-slate-950 font-black shadow-sm",
+  RAFEEQ: "bg-[#059669] text-white shadow-sm shadow-emerald-500/20",
+  DELIVEROO: "bg-[#00CDBC] text-slate-950 font-black shadow-sm",
+  IN_HOUSE: "bg-slate-100 text-slate-600",
+};
+
+export function PlatformBadge({ source, platformRef, className = "" }) {
+  if (!source || source === "IN_HOUSE") return null;
+  const style = PLATFORM_STYLES[source] || "bg-fuchsia-600 text-white";
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide uppercase ${style} ${className}`}>
+      <span>🛵 {source}</span>
+      {platformRef && <span className="opacity-90 font-bold">#{platformRef}</span>}
+    </span>
+  );
+}
+
 export function Toast({ message, onClose }) {
   if (!message) return null;
   return (

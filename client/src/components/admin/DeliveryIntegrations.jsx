@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { api } from "../../api.js";
-import { Truck, Copy, Check, Plug, Save } from "lucide-react";
+import { Truck, Copy, Check, Plug, Save, Sparkles } from "lucide-react";
 
 // Admin → Settings: manage delivery-partner API integrations.
 // Secrets are write-only from the UI (masked/never returned); leaving a secret
@@ -66,6 +66,18 @@ export default function DeliveryIntegrations({ onToast }) {
     }
   };
 
+  const simulate = async (platform = "ALL") => {
+    setBusy("simulate:" + platform);
+    try {
+      const { data } = await api.post("/integrations/simulate", { platform });
+      onToast?.(data.message || `Simulated ${data.count} partner orders! Check Billing & Kitchen.`);
+    } catch (e) {
+      onToast?.(e.message || "Simulation failed");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const copy = async (text, key) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -80,16 +92,29 @@ export default function DeliveryIntegrations({ onToast }) {
 
   return (
     <div className="card p-6">
-      <div className="mb-1 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
-          <Truck className="h-5 w-5" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Delivery Partner Integrations</h2>
+            <p className="text-xs text-slate-500">
+              Connect Snoonu, Talabat, Keeta, Rafeeq and Deliveroo webhook &amp; API credentials.
+            </p>
+          </div>
         </div>
-        <h2 className="text-lg font-bold text-slate-900">Delivery Partner Integrations</h2>
+
+        <button
+          onClick={() => simulate("ALL")}
+          disabled={busy.startsWith("simulate")}
+          className="btn-outline btn-sm !border-amber-400 !bg-amber-50 !text-amber-900 hover:!bg-amber-100 flex items-center gap-1.5 font-bold shadow-sm"
+          title="Create realistic sample webhook orders from all 5 online delivery partners"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+          <span>{busy === "simulate:ALL" ? "Simulating..." : "Simulate All 5 Partner Orders"}</span>
+        </button>
       </div>
-      <p className="mb-5 text-xs text-slate-500">
-        Connect Snoonu, Talabat, Keeta, Rafeeq and Deliveroo. Give each platform its Webhook URL + Webhook
-        Secret so their orders flow into your kitchen automatically. Secrets are stored encrypted.
-      </p>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {items.map((it) => {
@@ -153,7 +178,7 @@ export default function DeliveryIntegrations({ onToast }) {
                 </Field>
               </div>
 
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button className="btn-primary btn-sm" disabled={busy === it.platform} onClick={() => save(it)}>
                   <Save className="mr-1 inline h-3.5 w-3.5" />
                   {busy === it.platform ? "Saving…" : "Save"}
@@ -161,6 +186,15 @@ export default function DeliveryIntegrations({ onToast }) {
                 <button className="btn-outline btn-sm" disabled={busy === it.platform + ":test"} onClick={() => test(it)}>
                   <Plug className="mr-1 inline h-3.5 w-3.5" />
                   {busy === it.platform + ":test" ? "Testing…" : "Test"}
+                </button>
+                <button 
+                  className="btn-outline btn-sm !border-amber-300 !bg-amber-50/70 text-amber-900 hover:!bg-amber-100 ml-auto flex items-center gap-1 font-bold" 
+                  disabled={busy === "simulate:" + it.platform} 
+                  onClick={() => simulate(it.platform)}
+                  title={`Simulate an incoming ${it.label} order`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <span>{busy === "simulate:" + it.platform ? "Simulating..." : `Simulate ${it.label}`}</span>
                 </button>
               </div>
             </div>

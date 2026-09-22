@@ -20,12 +20,25 @@ function ticketHtml(order, shopName) {
     .join("");
 
   const when = new Date(order.createdAt || Date.now()).toLocaleString();
-  const where =
-    order.type === "DINE_IN"
-      ? `TABLE ${order.table?.tableNo ?? "-"}`
-      : order.type === "DELIVERY"
-      ? "DELIVERY"
-      : "TAKEAWAY";
+  const isPlatform = order.source && order.source !== "IN_HOUSE";
+  
+  let where = "TAKEAWAY";
+  if (order.type === "DINE_IN") {
+    where = `TABLE ${order.table?.tableNo ?? "-"}`;
+  } else if (isPlatform) {
+    where = `🛵 ${order.source} DELIVERY`;
+  } else if (order.type === "DELIVERY") {
+    where = "IN-HOUSE DELIVERY";
+  }
+
+  const partnerHeader = isPlatform
+    ? `<div class="partner-box">
+        <div class="partner-name">★ ${escapeHtml(order.source)} PARTNER ORDER ★</div>
+        ${order.platformRef ? `<div class="partner-ref">PICKUP REF: <strong>${escapeHtml(order.platformRef)}</strong></div>` : ""}
+        ${order.deliveryInfo?.name ? `<div class="partner-meta">Customer: ${escapeHtml(order.deliveryInfo.name)} ${escapeHtml(order.deliveryInfo.phone || "")}</div>` : ""}
+        ${order.deliveryInfo?.zone ? `<div class="partner-meta">Zone: ${escapeHtml(order.deliveryInfo.zone)}</div>` : ""}
+      </div>`
+    : "";
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>KOT ${order.orderNo}</title>
   <style>
@@ -36,25 +49,32 @@ function ticketHtml(order, shopName) {
     .shop { font-size: 15px; font-weight: 700; }
     .kot { font-size: 20px; font-weight: 800; letter-spacing: 2px; margin: 4px 0; }
     .meta { font-size: 12px; }
-    .where { font-size: 16px; font-weight: 800; border: 2px solid #000; padding: 3px; margin: 6px 0; }
+    .where { font-size: 16px; font-weight: 800; border: 2px solid #000; padding: 4px; margin: 6px 0; text-align: center; }
+    .partner-box { border: 2px dashed #000; padding: 5px; margin: 6px 0; text-align: center; }
+    .partner-name { font-size: 14px; font-weight: 900; letter-spacing: 1px; }
+    .partner-ref { font-size: 15px; margin: 2px 0; }
+    .partner-meta { font-size: 11px; }
     hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
     table { width: 100%; border-collapse: collapse; }
     td { vertical-align: top; padding: 3px 0; font-size: 14px; }
     td.q { width: 34px; font-weight: 800; }
     td.n { font-weight: 700; }
     .note { font-size: 11px; font-weight: 400; padding-left: 2px; }
+    .special-note { background: #eee; padding: 4px; border-left: 3px solid #000; font-size: 11px; font-weight: bold; margin: 4px 0; }
     .foot { font-size: 11px; margin-top: 6px; }
   </style></head>
   <body onload="window.print(); setTimeout(function(){ window.close(); }, 400);">
     <div class="center shop">${escapeHtml(shopName || "Kitchen")}</div>
     <div class="center kot">KOT</div>
     <div class="center meta">${escapeHtml(order.orderNo || "")}</div>
-    <div class="center where">${where}</div>
+    <div class="where">${where}</div>
+    ${partnerHeader}
     <div class="meta">${when}</div>
     <hr/>
     <table>${rows}</table>
+    ${order.note ? `<div class="special-note">INSTRUCTION: ${escapeHtml(order.note)}</div>` : ""}
     <hr/>
-    <div class="center foot">*** Kitchen Copy ***</div>
+    <div class="center foot">${isPlatform ? `*** PREPAID VIA ${order.source} - DO NOT CHARGE ***` : "*** Kitchen Copy ***"}</div>
   </body></html>`;
 }
 

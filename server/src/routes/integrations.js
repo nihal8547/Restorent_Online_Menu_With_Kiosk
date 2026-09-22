@@ -2,6 +2,8 @@ import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { encrypt, decrypt, mask } from "../utils/crypto.js";
+import { ingestPlatformOrder } from "../services/deliveryIngest.js";
+import { generateSamplePayload } from "../utils/samplePlatformOrders.js";
 
 const router = Router();
 const adminOnly = [requireAuth, requireRole("ADMIN")];
@@ -154,6 +156,35 @@ router.post("/:platform/test", ...adminOnly, async (req, res, next) => {
       ok: issues.length === 0,
       message: issues.length ? `Check: ${issues.join(", ")}` : "Configuration looks complete.",
       baseUrlProbe: reachable,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/integrations/simulate — generate sample API webhook orders for demonstration
+router.post("/simulate", ...adminOnly, async (req, res, next) => {
+  try {
+    const { platform = "ALL" } = req.body || {};
+    const targets = platform === "ALL" 
+      ? ["TALABAT", "SNOONU", "KEETA", "RAFEEQ", "DELIVEROO"]
+      : [String(platform).toUpperCase()];
+
+    const created = [];
+    for (const p of targets) {
+      if (!KEYS.has(p)) continue;
+      const payload = generateSamplePayload(p);
+      const result = await ingestPlatformOrder(p, payload);
+      if (result && result.ok) {
+        created.push({ platform: p, orderNo: result.orderNo, orderId: result.orderId });
+      }
+    }
+
+    res.json({
+      success: true,
+      count: created.length,
+      orders: created,
+      message: `Simulated ${created.length} delivery partner orders. They are now live in Kitchen & Billing.`
     });
   } catch (e) {
     next(e);

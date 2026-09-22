@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
-import { Spinner, Empty, StatusBadge, TypeBadge, Toast } from "../../components/ui.jsx";
+import { Spinner, Empty, StatusBadge, TypeBadge, PlatformBadge, Toast } from "../../components/ui.jsx";
 import FastPOS from "../../components/admin/FastPOS.jsx";
-import { Printer } from "lucide-react";
+import { Printer, Sparkles, MapPin, Phone } from "lucide-react";
 
 export default function Billing() {
   const [orders, setOrders] = useState([]);
@@ -13,10 +13,25 @@ export default function Billing() {
   const [filter, setFilter] = useState("ALL"); // ALL | PENDING | PAID
   const [staffFilter, setStaffFilter] = useState("ALL"); // ALL or staff username/name
   const [search, setSearch] = useState("");
+  const [channelFilter, setChannelFilter] = useState("ALL");
+  const [simulating, setSimulating] = useState(false);
   const [active, setActive] = useState(null); // order being paid
   const [pay, setPay] = useState({ mode: "CASH", discount: 0 });
   const [toast, setToast] = useState("");
   const [fastPosOpen, setFastPosOpen] = useState(false);
+
+  const simulateOrders = async (platform = "ALL") => {
+    setSimulating(true);
+    try {
+      const { data } = await api.post("/integrations/simulate", { platform });
+      setToast(data.message || `Simulated ${data.count} partner orders!`);
+      load();
+    } catch (e) {
+      setToast(e.message || "Failed to simulate partner orders");
+    } finally {
+      setSimulating(false);
+    }
+  };
 
   const load = useCallback(async () => {
     const params = { today: 1 };
@@ -119,6 +134,19 @@ export default function Billing() {
         if (!hasStaffPayment) return false;
       }
 
+      // Channel filter
+      if (channelFilter !== "ALL") {
+        if (channelFilter === "IN_HOUSE") {
+          if (o.source && o.source !== "IN_HOUSE") return false;
+        } else if (channelFilter === "DINE_IN") {
+          if (o.type !== "DINE_IN") return false;
+        } else if (channelFilter === "TAKEAWAY") {
+          if (o.type !== "TAKEAWAY" || (o.source && o.source !== "IN_HOUSE")) return false;
+        } else if (o.source !== channelFilter) {
+          return false;
+        }
+      }
+
       // Search query
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -126,17 +154,18 @@ export default function Billing() {
         const matchPhone = (o.customerPhone || "").toLowerCase().includes(q);
         const matchTable = o.table ? `table ${o.table.tableNo}`.toLowerCase().includes(q) : false;
         const matchWaiter = o.placedBy ? o.placedBy.name.toLowerCase().includes(q) : false;
+        const matchPlatformRef = (o.platformRef || "").toLowerCase().includes(q);
         const matchBilledBy = (o.payments || []).some((p) =>
           p.collectedBy ? p.collectedBy.name.toLowerCase().includes(q) : false
         );
-        if (!matchNo && !matchPhone && !matchTable && !matchWaiter && !matchBilledBy) {
+        if (!matchNo && !matchPhone && !matchTable && !matchWaiter && !matchPlatformRef && !matchBilledBy) {
           return false;
         }
       }
 
       return true;
     });
-  }, [orders, staffFilter, search]);
+  }, [orders, staffFilter, channelFilter, search]);
 
   // Summary Metrics
   const metrics = useMemo(() => {
@@ -217,6 +246,16 @@ export default function Billing() {
             + Manual Bill
           </button>
 
+          <button
+            onClick={() => simulateOrders("ALL")}
+            disabled={simulating}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 shadow-sm hover:bg-amber-100 transition ml-1"
+            title="Generate sample orders from Talabat, Snoonu, Keeta, Rafeeq & Deliveroo"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+            <span>{simulating ? "Simulating..." : "Simulate Partner Orders"}</span>
+          </button>
+
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner sm:ml-auto">
           <button
             onClick={() => setFilter("ALL")}
@@ -293,8 +332,48 @@ export default function Billing() {
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. SEARCH & STAFF AUDIT FILTER BAR                            */}
+      {/* 3. CHANNEL FILTER STRIP & SEARCH BAR                          */}
       {/* ------------------------------------------------------------- */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {[
+          { id: "ALL", label: "All Channels" },
+          { id: "DINE_IN", label: "Dine-In" },
+          { id: "TAKEAWAY", label: "Takeaway" },
+          { id: "TALABAT", label: "Talabat", color: "bg-[#FF5A00] text-white" },
+          { id: "SNOONU", label: "Snoonu", color: "bg-[#E30613] text-white" },
+          { id: "KEETA", label: "Keeta", color: "bg-[#FFD100] text-slate-950 font-black" },
+          { id: "RAFEEQ", label: "Rafeeq", color: "bg-[#059669] text-white" },
+          { id: "DELIVEROO", label: "Deliveroo", color: "bg-[#00CDBC] text-slate-950 font-black" },
+        ].map((ch) => {
+          const isActive = channelFilter === ch.id;
+          const count = orders.filter((o) => {
+            if (ch.id === "ALL") return true;
+            if (ch.id === "DINE_IN") return o.type === "DINE_IN";
+            if (ch.id === "TAKEAWAY") return o.type === "TAKEAWAY" && (!o.source || o.source === "IN_HOUSE");
+            return o.source === ch.id;
+          }).length;
+
+          return (
+            <button
+              key={ch.id}
+              onClick={() => setChannelFilter(ch.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
+                isActive
+                  ? ch.color || "bg-slate-900 text-white"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <span>{ch.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                isActive ? "bg-white/20 text-current" : "bg-slate-100 text-slate-700"
+              }`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="card p-3.5 border border-slate-200/80 bg-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Search Bar */}
         <div className="relative w-full sm:w-80">
@@ -414,12 +493,10 @@ export default function Billing() {
 
                   {/* Order Meta Badges */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
-                    <TypeBadge value={o.type} />
-                    {o.source && o.source !== "IN_HOUSE" && (
-                      <span className="rounded-md bg-fuchsia-100 px-2 py-0.5 font-bold text-fuchsia-700 text-[11px]">
-                        {o.source}
-                        {o.platformRef ? ` · ${o.platformRef}` : ""} · Prepaid
-                      </span>
+                    {o.source && o.source !== "IN_HOUSE" ? (
+                      <PlatformBadge source={o.source} platformRef={o.platformRef} />
+                    ) : (
+                      <TypeBadge value={o.type} />
                     )}
                     {o.table && (
                       <span className="rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-700 text-[11px]">
@@ -429,13 +506,17 @@ export default function Billing() {
                     <StatusBadge value={o.status} />
                   </div>
 
-                  {/* WHO TOOK THE ORDER (Waiter / Customer QR) */}
+                  {/* WHO TOOK THE ORDER (Waiter / Online Partner API / QR) */}
                   <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                    <span className="text-slate-400">👤</span>
+                    <span className="text-slate-400">⚡</span>
                     <span className="font-medium text-[11px]">
-                      Order taken by:{" "}
+                      Channel:{" "}
                       <strong className="text-slate-800 font-semibold">
-                        {o.placedBy ? o.placedBy.name : "Customer (QR Scan)"}
+                        {o.source && o.source !== "IN_HOUSE" 
+                          ? `${o.source} API Webhook` 
+                          : o.placedBy 
+                          ? o.placedBy.name 
+                          : "Customer (QR Scan)"}
                       </strong>
                     </span>
                     {o.placedBy?.role && (
@@ -443,15 +524,35 @@ export default function Billing() {
                         {o.placedBy.role}
                       </span>
                     )}
+                    {o.source && o.source !== "IN_HOUSE" && (
+                      <span className="ml-auto text-[9px] font-black uppercase rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5">
+                        Prepaid
+                      </span>
+                    )}
                   </div>
 
                   {/* Delivery Info if any */}
                   {o.deliveryInfo && (
-                    <p className="mt-1.5 text-xs text-gray-500">
-                      🛵 {o.deliveryInfo.name}, {o.deliveryInfo.street}, Bldg {o.deliveryInfo.buildingNo}
-                      {o.deliveryInfo.room ? `, Room ${o.deliveryInfo.room}` : ""} · {o.deliveryInfo.zone} ·{" "}
-                      {o.deliveryInfo.phone}
-                    </p>
+                    <div className="mt-2 rounded-xl bg-slate-50 p-2 text-xs text-slate-700 border border-slate-200/80 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold flex items-center gap-1 text-slate-900">
+                          <span className="text-slate-400">👤</span>
+                          {o.deliveryInfo.name}
+                        </span>
+                        {o.deliveryInfo.phone && (
+                          <span className="font-semibold text-slate-500 flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            {o.deliveryInfo.phone}
+                          </span>
+                        )}
+                      </div>
+                      {o.deliveryInfo.zone && (
+                        <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{o.deliveryInfo.zone} {o.deliveryInfo.street ? `· ${o.deliveryInfo.street}` : ""}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Itemized Order List */}
