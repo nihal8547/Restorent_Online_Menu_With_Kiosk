@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment
+.env
+**/.env
+!**/.env.example
+
+# Build output
+dist/
+build/
+client/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+server/prisma/*.db
+server/prisma/migrations/dev.db*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Uploads (local dev)
+server/uploads/*
+!server/uploads/.gitkeep

@@ -1,0 +1,227 @@
+// Enikk Vendya — Restaurant Online Menu + CRM + Kiosk
+// Data model covering: menu, tables/QR, orders (dine-in / delivery / takeaway),
+// kitchen flow, billing, payments, expenses, CRM, waiters and platform integrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  ADMIN
+  KITCHEN
+  CASHIER
+  WAITER
+}
+
+enum OrderType {
+  DINE_IN
+  DELIVERY
+  TAKEAWAY
+}
+
+enum OrderStatus {
+  NEW
+  PREPARING
+  READY
+  SERVED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum PaymentMode {
+  CASH
+  CARD
+  ONLINE
+}
+
+enum OrderSource {
+  IN_HOUSE // QR, waiter, takeaway created inside our system
+  KEETA
+  SNOONU
+  TALABAT
+}
+
+// ---------- Staff ----------
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  username     String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  placedOrders    Order[]   @relation("PlacedBy")
+  collectedPayments Payment[] @relation("CollectedBy")
+}
+
+// ---------- Menu ----------
+
+model Category {
+  id        Int        @id @default(autoincrement())
+  name      String
+  sortOrder Int        @default(0)
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  items     MenuItem[]
+}
+
+model MenuItem {
+  id          Int      @id @default(autoincrement())
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId  Int
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  photoUrl    String?
+  available   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+}
+
+// ---------- Tables & QR ----------
+
+model RestaurantTable {
+  id        Int      @id @default(autoincrement())
+  tableNo   String   @unique
+  qrToken   String   @unique @default(cuid())
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  orders Order[]
+}
+
+// ---------- Orders ----------
+
+model Order {
+  id            Int           @id @default(autoincrement())
+  orderNo       String        @unique @default("")
+  orderToken    String        @unique @default(cuid()) // used for public bill link
+  type          OrderType     @default(DINE_IN)
+  status        OrderStatus   @default(NEW)
+  source        OrderSource   @default(IN_HOUSE)
+  externalId    String? // id on the delivery platform, if any
+
+  table   RestaurantTable? @relation(fields: [tableId], references: [id])
+  tableId Int?
+
+  placedBy   User? @relation("PlacedBy", fields: [placedById], references: [id])
+  placedById Int? // waiter/staff who placed it (null = customer self-order)
+
+  customerPhone String?
+  note          String?
+
+  subtotal Decimal @default(0) @db.Decimal(10, 2)
+  tax      Decimal @default(0) @db.Decimal(10, 2)
+  discount Decimal @default(0) @db.Decimal(10, 2)
+  total    Decimal @default(0) @db.Decimal(10, 2)
+
+  paymentStatus PaymentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items        OrderItem[]
+  payments     Payment[]
+  deliveryInfo DeliveryInfo?
+
+  @@index([customerPhone])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    Int
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId Int
+  name       String // snapshot of item name at order time
+  price      Decimal  @db.Decimal(10, 2) // snapshot of unit price
+  qty        Int      @default(1)
+  note       String?
+
+  @@index([orderId])
+}
+
+model DeliveryInfo {
+  id         Int    @id @default(autoincrement())
+  order      Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    Int    @unique
+  name       String
+  phone      String
+  street     String
+  buildingNo String
+  room       String?
+  zone       String
+}
+
+// ---------- Payments ----------
+
+model Payment {
+  id            Int         @id @default(autoincrement())
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId       Int
+  amount        Decimal     @db.Decimal(10, 2)
+  mode          PaymentMode @default(CASH)
+  collectedBy   User?       @relation("CollectedBy", fields: [collectedById], references: [id])
+  collectedById Int?
+  paidAt        DateTime    @default(now())
+
+  @@index([orderId])
+  @@index([paidAt])
+}
+
+// ---------- Daily cost / expenses ----------
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @default(now())
+  title     String
+  amount    Decimal  @db.Decimal(10, 2)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+// ---------- CRM ----------
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  phone     String   @unique
+  name      String?
+  lastZone  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Platform integration raw log ----------
+
+model PlatformOrder {
+  id            Int         @id @default(autoincrement())
+  platform      OrderSource
+  externalId    String
+  payload       Json
+  mappedOrderId Int?
+  createdAt     DateTime    @default(now())
+
+  @@unique([platform, externalId])
+}

@@ -1,0 +1,68 @@
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api, money } from "../../api.js";
+import { Spinner } from "../../components/ui.jsx";
+
+export default function Dashboard() {
+  const [report, setReport] = useState(null);
+  const [pending, setPending] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const [r, orders] = await Promise.all([
+        api.get("/reports/daily"),
+        api.get("/orders", { params: { paymentStatus: "PENDING", today: 1 } }),
+      ]);
+      setReport(r.data);
+      setPending(orders.data.orders.length);
+    })();
+  }, []);
+
+  if (!report) return <Spinner />;
+
+  const stats = [
+    { label: "Today's Sales", value: money(report.sales), accent: "text-brand" },
+    { label: "Expenses", value: money(report.expenses) },
+    { label: "Profit", value: money(report.profit), accent: report.profit >= 0 ? "text-emerald-600" : "text-red-600" },
+    { label: "Orders", value: report.orderCount },
+    { label: "Paid", value: report.paidCount, accent: "text-emerald-600" },
+    { label: "Unpaid", value: report.pendingCount, accent: "text-orange-600" },
+  ];
+
+  return (
+    <div>
+      <h1 className="mb-4 text-xl font-bold">Dashboard · {report.date}</h1>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {stats.map((s) => (
+          <div key={s.label} className="card p-4">
+            <p className="text-xs text-gray-500">{s.label}</p>
+            <p className={`mt-1 text-lg font-bold ${s.accent || ""}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {pending > 0 && (
+        <Link to="/admin/billing" className="card mt-4 block bg-orange-50 p-4 text-orange-700">
+          {pending} order(s) awaiting payment → go to Billing
+        </Link>
+      )}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <QuickLink to="/admin/menu" label="Manage Menu" icon="🍔" />
+        <QuickLink to="/admin/tables" label="Tables & QR" icon="🔳" />
+        <QuickLink to="/admin/billing" label="Billing" icon="🧾" />
+        <QuickLink to="/admin/reports" label="Reports" icon="📊" />
+      </div>
+    </div>
+  );
+}
+
+function QuickLink({ to, label, icon }) {
+  return (
+    <Link to={to} className="card flex items-center gap-3 p-4 hover:border-brand">
+      <span className="text-2xl">{icon}</span>
+      <span className="font-medium">{label}</span>
+    </Link>
+  );
+}
