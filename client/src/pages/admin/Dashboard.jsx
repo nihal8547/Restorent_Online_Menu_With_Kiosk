@@ -1,22 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { Spinner } from "../../components/ui.jsx";
+import { subscribeGlobal } from "../../socket.js";
 
 export default function Dashboard() {
   const [report, setReport] = useState(null);
   const [pending, setPending] = useState(0);
 
-  useEffect(() => {
-    (async () => {
-      const [r, orders] = await Promise.all([
-        api.get("/reports/daily"),
-        api.get("/orders", { params: { paymentStatus: "PENDING", today: 1 } }),
-      ]);
-      setReport(r.data);
-      setPending(orders.data.orders.length);
-    })();
+  const load = useCallback(async () => {
+    const [r, orders] = await Promise.all([
+      api.get("/reports/daily"),
+      api.get("/orders", { params: { paymentStatus: "PENDING", today: 1 } }),
+    ]);
+    setReport(r.data);
+    setPending(orders.data.orders.length);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Real-time: refresh on new orders or payments
+  useEffect(() => {
+    const refresh = () => load();
+    return subscribeGlobal({
+      onNew: refresh,
+      onUpdated: refresh,
+      onPayment: refresh,
+    });
+  }, [load]);
 
   if (!report) return <Spinner />;
 

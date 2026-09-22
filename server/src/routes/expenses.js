@@ -49,6 +49,32 @@ router.post("/", ...adminOnly, async (req, res, next) => {
   }
 });
 
+// GET /api/expenses/range?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get("/range", ...adminOnly, async (req, res, next) => {
+  try {
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 6 * 864e5);
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+
+    const expenses = await prisma.expense.findMany({
+      where: { date: { gte: from, lte: to } },
+      select: { amount: true, date: true },
+    });
+    const map = {};
+    for (const e of expenses) {
+      const key = e.date.toISOString().slice(0, 10);
+      map[key] = (map[key] || 0) + Number(e.amount);
+    }
+    const rows = Object.entries(map)
+      .map(([date, total]) => ({ date, total: +total.toFixed(2) }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    res.json({ rows });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // DELETE /api/expenses/:id
 router.delete("/:id", ...adminOnly, async (req, res, next) => {
   try {

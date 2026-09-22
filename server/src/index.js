@@ -15,6 +15,7 @@ import reportRoutes from "./routes/reports.js";
 import customerRoutes from "./routes/customers.js";
 import billRoutes from "./routes/bill.js";
 import webhookRoutes from "./routes/webhooks.js";
+import waiterRoutes from "./routes/waiters.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -38,6 +39,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/bill", billRoutes);
 app.use("/api/webhooks", webhookRoutes);
+app.use("/api/waiters", waiterRoutes);
 
 // 404 for unknown API routes
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
@@ -58,8 +60,15 @@ const io = new SocketServer(server, {
 setIo(io);
 
 io.on("connection", (socket) => {
+  // Staff rooms: "kitchen", "admin", "waiters"
   socket.on("join", (room) => {
     if (["kitchen", "admin", "waiters"].includes(room)) socket.join(room);
+  });
+  // Customer order room: "order:<orderToken>" — for per-order status tracking
+  socket.on("watch:order", (orderToken) => {
+    if (orderToken && typeof orderToken === "string" && orderToken.length < 100) {
+      socket.join(`order:${orderToken}`);
+    }
   });
 });
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { api } from "../../api.js";
 import { Spinner, Toast } from "../../components/ui.jsx";
+import { subscribeOrders } from "../../socket.js";
 
 export default function Tables() {
   const [tables, setTables] = useState([]);
@@ -17,6 +18,12 @@ export default function Tables() {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  // Real-time: refresh tables when orders change (table occupancy updates)
+  useEffect(() => {
+    const refresh = () => load();
+    return subscribeOrders("admin", { onNew: refresh, onUpdated: refresh });
   }, [load]);
 
   const addTable = async () => {

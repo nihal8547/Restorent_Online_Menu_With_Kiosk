@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { resolveCartItems, computeTotals, formatOrderNo } from "../utils/order.js";
-import { emitOrderEvent } from "../socket.js";
+import { emitOrderEvent, emitToOrder } from "../socket.js";
 
 const router = Router();
 
@@ -10,8 +10,13 @@ const orderInclude = {
   items: true,
   table: { select: { id: true, tableNo: true } },
   deliveryInfo: true,
-  placedBy: { select: { id: true, name: true, role: true } },
-  payments: true,
+  placedBy: { select: { id: true, name: true, role: true, username: true } },
+  payments: {
+    include: {
+      collectedBy: { select: { id: true, name: true, role: true, username: true } },
+    },
+    orderBy: { paidAt: "desc" },
+  },
 };
 
 // Upsert a lightweight CRM customer record from a phone number.
@@ -191,6 +196,43 @@ async function resolveDineInTable({ tableToken, tableNo }) {
   throw e;
 }
 
+// ---------- Public: get order slip (customer confirmation receipt) ----------
+// GET /api/orders/slip/:orderToken
+// Safe to call before payment — returns order items and meta only, no payment details.
+router.get("/slip/:orderToken", async (req, res, next) => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { orderToken: req.params.orderToken },
+      include: {
+        items: true,
+        table: { select: { tableNo: true } },
+      },
+    });
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    res.json({
+      orderNo: order.orderNo,
+      orderToken: order.orderToken,
+      type: order.type,
+      status: order.status,
+      createdAt: order.createdAt,
+      table: order.table ? { tableNo: order.table.tableNo } : null,
+      items: order.items.map((i) => ({
+        name: i.name,
+        qty: i.qty,
+        price: Number(i.price),
+        note: i.note || null,
+      })),
+      subtotal: Number(order.subtotal),
+      tax: Number(order.tax),
+      total: Number(order.total),
+      paymentStatus: order.paymentStatus,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // ---------- Public: place an order (customer self-order) ----------
 // POST /api/orders  { type, tableToken?, tableNo?, cart, note?, delivery? }
 router.post("/", async (req, res, next) => {
@@ -337,6 +379,11 @@ router.patch(
         include: orderInclude,
       });
       emitOrderEvent("order:updated", order);
+      emitToOrder(order.orderToken, "order:status", {
+        orderToken: order.orderToken,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+      });
       res.json({ order });
     } catch (e) {
       next(e);
@@ -387,6 +434,11 @@ router.patch(
         });
       });
       emitOrderEvent("order:updated", order);
+      emitToOrder(order.orderToken, "order:status", {
+        orderToken: order.orderToken,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+      });
       res.json({ order });
     } catch (e) {
       if (e.status) return res.status(e.status).json({ error: e.message });

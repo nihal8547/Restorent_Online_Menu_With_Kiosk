@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
-import { emitOrderEvent } from "../socket.js";
+import { emitOrderEvent, emitToOrder, emitGlobal } from "../socket.js";
 
 const router = Router();
 const billing = [requireAuth, requireRole("CASHIER", "ADMIN")];
@@ -51,11 +51,30 @@ router.post("/", ...billing, async (req, res, next) => {
       return tx.order.update({
         where: { id: current.id },
         data: { paymentStatus: fullyPaid ? "PAID" : "PENDING" },
-        include: { items: true, payments: true, table: true, deliveryInfo: true },
+        include: {
+          items: true,
+          payments: {
+            include: {
+              collectedBy: { select: { id: true, name: true, role: true, username: true } },
+            },
+            orderBy: { paidAt: "desc" },
+          },
+          table: true,
+          deliveryInfo: true,
+          placedBy: { select: { id: true, name: true, role: true, username: true } },
+        },
       });
     });
 
     emitOrderEvent("order:updated", result);
+    // Notify the specific customer watching this order (OrderSlip / BillView)
+    emitToOrder(result.orderToken, "order:status", {
+      orderToken: result.orderToken,
+      status: result.status,
+      paymentStatus: result.paymentStatus,
+    });
+    // Notify dashboard / reports globally so KPIs refresh
+    emitGlobal("payment:done", { orderId: result.id, total: Number(result.total) });
     res.status(201).json({ order: result });
   } catch (e) {
     next(e);

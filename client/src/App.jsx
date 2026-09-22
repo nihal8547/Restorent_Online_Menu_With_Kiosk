@@ -7,6 +7,7 @@ import StaffLayout, { RequireRole } from "./components/StaffLayout.jsx";
 import Menu from "./pages/customer/Menu.jsx";
 import Checkout from "./pages/customer/Checkout.jsx";
 import BillView from "./pages/customer/BillView.jsx";
+import OrderSlip from "./pages/customer/OrderSlip.jsx";
 import History from "./pages/customer/History.jsx";
 import Landing from "./pages/customer/Landing.jsx";
 
@@ -22,6 +23,7 @@ import Billing from "./pages/admin/Billing.jsx";
 import Customers from "./pages/admin/Customers.jsx";
 import Expenses from "./pages/admin/Expenses.jsx";
 import Reports from "./pages/admin/Reports.jsx";
+import Waiters from "./pages/admin/Waiters.jsx";
 
 export default function App() {
   return (
@@ -32,6 +34,7 @@ export default function App() {
       <Route path="/t/:qrToken" element={<Menu />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order/:orderToken" element={<BillView />} />
+      <Route path="/order-slip/:orderToken" element={<OrderSlip />} />
       <Route path="/history" element={<History />} />
       <Route path="/login" element={<Login />} />
 
@@ -73,6 +76,7 @@ export default function App() {
         <Route path="/admin/customers" element={<Customers />} />
         <Route path="/admin/expenses" element={<Expenses />} />
         <Route path="/admin/reports" element={<Reports />} />
+        <Route path="/admin/waiters" element={<Waiters />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

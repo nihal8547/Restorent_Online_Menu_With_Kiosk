@@ -57,7 +57,7 @@ export default function Checkout() {
       const savePhone = type === "DELIVERY" ? delivery.phone : phone;
       if (savePhone) localStorage.setItem("ev_phone", savePhone);
       // If it merged into the table's running bill, let the bill page announce it.
-      navigate(`/order/${data.orderToken}${data.merged ? "?merged=1" : ""}`);
+      navigate(`/order-slip/${data.orderToken}${data.merged ? "?merged=1" : ""}`);
     } catch (e) {
       setErr(e.message);
     } finally {
