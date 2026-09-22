@@ -63,42 +63,49 @@ export default function Menu() {
         {categories.map((cat) => (
           <section key={cat.id}>
             <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-400">{cat.name}</h2>
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {cat.items.map((item) => {
                 const inCart = cart.items.find((i) => i.menuItemId === item.id);
                 return (
-                  <div key={item.id} className="card flex items-center gap-3 p-3">
-                    {item.photoUrl && (
-                      <img src={item.photoUrl} alt="" className="h-14 w-14 rounded-lg object-cover" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{item.name}</p>
-                      {item.description && (
-                        <p className="truncate text-xs text-gray-500">{item.description}</p>
+                  <div key={item.id} className="card flex flex-col overflow-hidden">
+                    <div className="flex h-24 items-center justify-center bg-gradient-to-br from-ink to-ink-soft">
+                      {item.photoUrl ? (
+                        <img src={item.photoUrl} alt={item.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-3xl opacity-80">🍲</span>
                       )}
-                      <p className="mt-0.5 text-sm font-semibold text-brand">{money(item.price)}</p>
                     </div>
-                    {inCart ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="btn-outline btn-sm h-8 w-8 !px-0"
-                          onClick={() => cart.setQty(item.id, inCart.qty - 1)}
-                        >
-                          −
-                        </button>
-                        <span className="w-5 text-center text-sm font-semibold">{inCart.qty}</span>
-                        <button
-                          className="btn-primary btn-sm h-8 w-8 !px-0"
-                          onClick={() => cart.setQty(item.id, inCart.qty + 1)}
-                        >
-                          +
-                        </button>
+                    <div className="flex flex-1 flex-col p-2.5">
+                      <p className="line-clamp-2 text-sm font-medium leading-snug">{item.name}</p>
+                      {item.description && (
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-gray-500">{item.description}</p>
+                      )}
+                      <p className="mt-1 text-sm font-semibold text-brand">{money(item.price)}</p>
+
+                      <div className="mt-2">
+                        {inCart ? (
+                          <div className="flex items-center justify-between">
+                            <button
+                              className="btn-outline btn-sm h-8 w-8 !px-0"
+                              onClick={() => cart.setQty(item.id, inCart.qty - 1)}
+                            >
+                              −
+                            </button>
+                            <span className="text-sm font-semibold">{inCart.qty}</span>
+                            <button
+                              className="btn-primary btn-sm h-8 w-8 !px-0"
+                              onClick={() => cart.setQty(item.id, inCart.qty + 1)}
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <button className="btn-primary btn-sm w-full" onClick={() => cart.add(item)}>
+                            Add
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <button className="btn-primary btn-sm" onClick={() => cart.add(item)}>
-                        Add
-                      </button>
-                    )}
+                    </div>
                   </div>
                 );
               })}

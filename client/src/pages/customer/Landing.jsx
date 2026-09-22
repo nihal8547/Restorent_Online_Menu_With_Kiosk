@@ -76,27 +76,27 @@ export default function Landing() {
           <h2 className="display mt-1 text-3xl font-semibold text-ink">Signature Favourites</h2>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
           {featured.map((item) => (
             <Link
               to="/menu"
               key={item.id}
               className="card group overflow-hidden transition hover:-translate-y-1 hover:shadow-soft"
             >
-              <div className="flex h-40 items-center justify-center overflow-hidden bg-gradient-to-br from-ink to-ink-soft">
+              <div className="flex h-28 items-center justify-center overflow-hidden bg-gradient-to-br from-ink to-ink-soft sm:h-40">
                 {item.photoUrl ? (
                   <img src={item.photoUrl} alt={item.name} className="h-full w-full object-cover transition group-hover:scale-105" />
                 ) : (
                   <span className="text-5xl opacity-80">🍲</span>
                 )}
               </div>
-              <div className="p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-400">{item.category}</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <h3 className="font-semibold text-ink">{item.name}</h3>
+              <div className="p-3 sm:p-4">
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 sm:text-xs">{item.category}</p>
+                <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-2">
+                  <h3 className="line-clamp-1 font-semibold text-ink">{item.name}</h3>
                   <span className="font-semibold text-brand">{money(item.price)}</span>
                 </div>
-                {item.description && <p className="mt-1 line-clamp-1 text-sm text-gray-500">{item.description}</p>}
+                {item.description && <p className="mt-1 line-clamp-1 text-xs text-gray-500 sm:text-sm">{item.description}</p>}
               </div>
             </Link>
           ))}
