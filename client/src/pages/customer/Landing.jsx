@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, money } from "../../api.js";
+import { BRAND } from "../../config.js";
 
 export default function Landing() {
   const [featured, setFeatured] = useState([]);
@@ -18,11 +19,11 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen overflow-x-hidden bg-cream">
       {/* Top bar */}
       <header className="absolute inset-x-0 top-0 z-20">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-          <span className="display text-xl font-semibold text-white">Enikk Vendya</span>
+          <span className="display text-xl font-semibold text-white">{BRAND.name}</span>
           <nav className="hidden gap-6 text-sm font-medium text-white/80 sm:flex">
             <a href="#menu" className="hover:text-white">Menu</a>
             <a href="#how" className="hover:text-white">How it works</a>
@@ -45,16 +46,16 @@ export default function Landing() {
           <span className="animate-fade-up rounded-full border border-white/20 px-4 py-1 text-xs font-medium uppercase tracking-widest text-gold">
             Fresh · Fast · Flavourful
           </span>
-          <h1 className="display animate-fade-up mt-6 text-4xl font-semibold leading-tight text-white sm:text-6xl">
+          <h1 className="display animate-fade-up mt-6 w-full text-balance text-[1.9rem] font-semibold leading-[1.15] text-white sm:text-5xl lg:text-6xl">
             Fine dining,
             <br />
             <span className="text-brand-light">delivered to your table.</span>
           </h1>
-          <p className="animate-fade-up mt-5 max-w-xl text-base text-white/70 sm:text-lg">
+          <p className="animate-fade-up mt-5 w-full max-w-xl text-base text-white/70 sm:text-lg">
             Scan, browse our chef-crafted menu and order in seconds — dine-in, takeaway or
             home delivery. No app, no login, no waiting.
           </p>
-          <div className="animate-fade-up mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="animate-fade-up mt-8 flex w-full max-w-md flex-col gap-3 sm:w-auto sm:flex-row">
             <Link to="/menu" className="btn-primary px-8 py-3 text-base">
               🍽️ View Menu &amp; Order
             </Link>
@@ -154,7 +155,7 @@ export default function Landing() {
       {/* Footer — deliberately no staff login here (staff use /login directly) */}
       <footer className="border-t border-gray-200 bg-cream">
         <div className="mx-auto max-w-6xl px-6 py-8 text-center text-sm text-gray-500">
-          <p className="display text-lg font-semibold text-ink">Enikk Vendya</p>
+          <p className="display text-lg font-semibold text-ink">{BRAND.name}</p>
           <p className="mt-1">Fresh food, made with love. © {new Date().getFullYear()}</p>
         </div>
       </footer>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../store/auth.js";
+import { BRAND } from "../config.js";
 
 const HOME_BY_ROLE = {
   ADMIN: "/admin",
@@ -39,7 +40,7 @@ export default function Login() {
             🔐
           </div>
           <h1 className="display mt-3 text-xl font-semibold text-ink">Staff Portal</h1>
-          <p className="text-sm text-gray-500">Enikk Vendya · authorized access</p>
+          <p className="text-sm text-gray-500">{BRAND.name} · authorized access</p>
         </div>
         <div className="space-y-3">
           <div>

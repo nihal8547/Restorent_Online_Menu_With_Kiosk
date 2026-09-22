@@ -87,11 +87,11 @@ export default function AdminMenu() {
       <div className="space-y-6">
         {categories.map((cat) => (
           <div key={cat.id} className="card p-4">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-bold">
                 {cat.name} {!cat.active && <span className="text-xs text-gray-400">(hidden)</span>}
               </h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   className="btn-primary btn-sm"
                   onClick={() =>
@@ -112,36 +112,40 @@ export default function AdminMenu() {
             <div className="divide-y">
               {cat.items.length === 0 && <p className="py-3 text-sm text-gray-400">No items yet.</p>}
               {cat.items.map((it) => (
-                <div key={it.id} className="flex items-center gap-3 py-2">
-                  <div className="flex-1">
-                    <p className={`font-medium ${!it.available ? "text-gray-400 line-through" : ""}`}>
-                      {it.name}
-                    </p>
-                    {it.description && <p className="text-xs text-gray-500">{it.description}</p>}
+                <div key={it.id} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`font-medium ${!it.available ? "text-gray-400 line-through" : ""}`}>
+                        {it.name}
+                      </p>
+                      {it.description && <p className="truncate text-xs text-gray-500">{it.description}</p>}
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-brand">{money(it.price)}</span>
                   </div>
-                  <span className="text-sm font-semibold text-brand">{money(it.price)}</span>
-                  <button className="btn-outline btn-sm" onClick={() => toggleItem(it)}>
-                    {it.available ? "In stock" : "Out"}
-                  </button>
-                  <button
-                    className="btn-outline btn-sm"
-                    onClick={() =>
-                      setItemForm({
-                        id: it.id,
-                        categoryId: cat.id,
-                        name: it.name,
-                        description: it.description || "",
-                        price: Number(it.price),
-                        photoUrl: it.photoUrl || "",
-                        available: it.available,
-                      })
-                    }
-                  >
-                    Edit
-                  </button>
-                  <button className="btn-outline btn-sm text-red-600" onClick={() => deleteItem(it)}>
-                    ✕
-                  </button>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button className="btn-outline btn-sm" onClick={() => toggleItem(it)}>
+                      {it.available ? "In stock" : "Out of stock"}
+                    </button>
+                    <button
+                      className="btn-outline btn-sm"
+                      onClick={() =>
+                        setItemForm({
+                          id: it.id,
+                          categoryId: cat.id,
+                          name: it.name,
+                          description: it.description || "",
+                          price: Number(it.price),
+                          photoUrl: it.photoUrl || "",
+                          available: it.available,
+                        })
+                      }
+                    >
+                      Edit
+                    </button>
+                    <button className="btn-outline btn-sm text-red-600" onClick={() => deleteItem(it)}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

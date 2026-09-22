@@ -1,4 +1,5 @@
 import axios from "axios";
+import { BRAND } from "./config.js";
 
 // All API calls go through /api (Vite proxies to the backend in dev).
 export const api = axios.create({ baseURL: "/api" });
@@ -19,4 +20,4 @@ api.interceptors.response.use(
   }
 );
 
-export const money = (n) => `QR ${Number(n || 0).toFixed(2)}`;
+export const money = (n) => `${BRAND.currency} ${Number(n || 0).toFixed(2)}`;

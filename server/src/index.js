@@ -25,7 +25,7 @@ app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN.split(","), cred
 app.use(express.json({ limit: "1mb" }));
 
 // Health check
-app.get("/api/health", (req, res) => res.json({ ok: true, service: "enikk-vendya", time: new Date() }));
+app.get("/api/health", (req, res) => res.json({ ok: true, service: "zafran", time: new Date() }));
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -65,5 +65,5 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`🍽️  Enikk Vendya API running on http://localhost:${PORT}`);
+  console.log(`🍽️  Zafran API running on http://localhost:${PORT}`);
 });

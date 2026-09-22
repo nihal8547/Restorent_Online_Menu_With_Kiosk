@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { api, money } from "../../api.js";
 import { useCart } from "../../store/cart.js";
 import { Spinner, Empty } from "../../components/ui.jsx";
+import { BRAND } from "../../config.js";
 
 export default function Menu() {
   const { qrToken } = useParams();
@@ -41,7 +42,7 @@ export default function Menu() {
         <div className="flex items-center justify-between">
           <div>
             <Link to="/" className="display text-lg font-semibold">
-              Enikk Vendya
+              {BRAND.name}
             </Link>
             {table ? (
               <p className="mt-0.5 text-xs text-gold">Dine-in · Table {table.tableNo}</p>

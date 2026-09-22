@@ -1,4 +1,4 @@
-# 🍽️ Enikk Vendya — Restaurant Online Menu + CRM + Kiosk
+# 🍽️ Zafran — Restaurant Online Menu + CRM + Kiosk
 
 A full-stack restaurant system: QR-based table ordering, kitchen display, billing &
 payments, waiter ordering, delivery orders with address capture, customer bill/history
@@ -83,6 +83,22 @@ is needed in development.
 | Kitchen | `kitchen` | `staff123` |
 | Cashier | `cashier` | `staff123` |
 | Waiter | `waiter` | `staff123` |
+
+## How staff / admin log in
+
+The staff area is **kept separate** from the customer site — there is **no login link**
+anywhere on the public pages. Staff open the login screen directly:
+
+1. Go to **`/login`** (e.g. `https://yourdomain.com/login`) — the "Staff Portal" screen.
+2. Enter the username and password (see the demo logins above; **admin / admin123**).
+3. On success you're taken to your home screen by role:
+   - **Admin** → `/admin` (dashboard: menu, tables & QR, billing, customers, daily cost, reports)
+   - **Cashier** → `/admin/billing`
+   - **Kitchen** → `/kitchen`
+   - **Waiter** → `/waiter`
+
+> Tip: bookmark `/login` for staff devices. Change the seeded passwords before going live
+> (hash a new password and update the `users` table, or extend the seed).
 
 ## Customer flows
 

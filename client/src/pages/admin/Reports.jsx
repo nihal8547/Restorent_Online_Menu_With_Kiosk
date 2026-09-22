@@ -84,7 +84,8 @@ export default function Reports() {
         {items.length === 0 ? (
           <Empty>No item sales.</Empty>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[320px] text-sm">
             <thead>
               <tr className="text-left text-gray-500">
                 <th className="py-1">Item</th>
@@ -102,6 +103,7 @@ export default function Reports() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

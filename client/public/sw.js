@@ -1,8 +1,8 @@
-// Enikk Vendya — service worker.
+// Zafran — service worker.
 // App-shell caching with a network-first strategy for navigations and API calls,
 // so customers always get fresh menu/order data but the app still opens offline.
 
-const CACHE = "enikk-vendya-v1";
+const CACHE = "zafran-v1";
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
