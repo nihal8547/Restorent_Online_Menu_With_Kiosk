@@ -59,7 +59,7 @@ docker compose up -d          # starts Postgres on localhost:5432
 cd server
 cp .env.example .env          # adjust values if needed
 npm install
-npm run db:push               # create tables
+npm run prisma:deploy         # apply migrations (creates all tables)
 npm run seed                  # demo data + staff logins
 npm run dev                   # http://localhost:4000
 ```
@@ -74,6 +74,16 @@ npm run dev                   # http://localhost:5173
 
 The Vite dev server proxies `/api` and `/socket.io` to the backend, so no extra config
 is needed in development.
+
+### Database migrations
+
+The schema is versioned with **Prisma Migrate** (`server/prisma/migrations/`).
+
+- **Production / any deploy:** `npm run prisma:deploy` — applies pending migrations
+  (safe, non-interactive, never drops data).
+- **Changing the schema (dev):** edit `prisma/schema.prisma`, then
+  `npm run prisma:migrate -- --name <change>` to create + apply a new migration.
+- Do **not** use `db:push` on production — it bypasses migration history.
 
 ## Demo logins
 
