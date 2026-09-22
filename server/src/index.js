@@ -23,6 +23,7 @@ import assistanceRoutes from "./routes/assistance.js";
 import inventoryRoutes from "./routes/inventory.js";
 import accountingRoutes from "./routes/accounting.js";
 import integrationRoutes from "./routes/integrations.js";
+import mappingRoutes from "./routes/mapping.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -59,6 +60,7 @@ app.use("/api/assistance", assistanceRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/accounting", accountingRoutes);
 app.use("/api/integrations", integrationRoutes);
+app.use("/api/mapping", mappingRoutes);
 
 // Serve static files from the uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));

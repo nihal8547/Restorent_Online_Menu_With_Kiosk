@@ -100,8 +100,26 @@ model MenuItem {
   orderItems     OrderItem[]
   banners        Banner[]
   stockMovements StockMovement[]
+  platformMaps   PlatformItemMap[]
 
   @@index([categoryId])
+}
+
+// ---------- Delivery platform SKU ↔ menu item mapping ----------
+// Each delivery platform sends its own product code (SKU/PLU). This maps that
+// code to our menu item, per platform.
+
+model PlatformItemMap {
+  id         Int      @id @default(autoincrement())
+  platform   String // TALABAT | SNOONU | KEETA | RAFEEQ | DELIVEROO
+  sku        String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItemId Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([platform, sku])
+  @@index([menuItemId])
 }
 
 // ---------- Inventory movement log ----------

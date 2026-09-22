@@ -131,11 +131,22 @@ webhook secret, store id and base URL — secrets are **encrypted at rest** (AES
 and never returned to the browser (only masked). Each platform shows the **Webhook URL**
 to hand to that partner, plus Enable and Test controls. API: `/api/integrations/*`.
 
-`POST /api/webhooks/{snoonu|talabat|keeta|rafeeq|deliveroo}` accepts a normalised payload
-and creates a delivery order in the same kitchen/billing pipeline. The request must carry
-`x-webhook-secret` matching that platform's stored secret, the integration must be enabled,
-and duplicate `externalId`s are ignored (idempotent). Map each platform's real payload shape
-to the normalised body in `server/src/routes/webhooks.js`.
+`POST /api/webhooks/{snoonu|talabat|keeta|rafeeq|deliveroo}` receives each platform's own
+payload. The request must carry `x-webhook-secret` matching that platform's stored secret,
+the integration must be enabled, and duplicate `externalId`s are ignored (idempotent).
+
+**Payload mapping** happens in two layers:
+
+1. **Field mapping** — `server/src/utils/platformAdapters.js` has a per-platform adapter
+   (`mapTalabat`, `mapSnoonu`, `mapKeeta`, `mapRafeeq`, `mapDeliveroo`) that translates the
+   platform's JSON (their field names for order id, customer, address, line items) into our
+   normalised order shape. The adapters accept several common field-name variants; tighten
+   them against each platform's real API docs when you onboard.
+2. **Item (SKU) mapping** — each platform sends its own product code (SKU/PLU). In
+   **Admin → Menu Mapping** you map each menu item to each platform's SKU. Incoming line
+   items are resolved to your menu via these codes (`/api/mapping`). If an order contains an
+   unmapped SKU, the webhook responds `422` with the unmapped SKUs (the raw payload is logged
+   under *failed* orders) so you can add the mapping and the platform retries.
 
 ## Inventory, tax & KOT (POS features)
 

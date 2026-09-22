@@ -119,6 +119,7 @@ const NAV_CONFIG = {
     { to: "/admin/tables", label: "Tables & QR", icon: "tables" },
     { to: "/admin/menu", label: "Menu Items", icon: "menu" },
     { to: "/admin/inventory", label: "Inventory", icon: "tables", badge: "Stock" },
+    { to: "/admin/mapping", label: "Menu Mapping", icon: "menu", badge: "Delivery" },
     { to: "/admin/customers", label: "Customers", icon: "customers" },
     { to: "/admin/expenses", label: "Daily Cost", icon: "expenses" },
     { to: "/admin/reports", label: "Reports", icon: "reports" },

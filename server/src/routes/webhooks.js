@@ -3,6 +3,7 @@ import { prisma } from "../prisma.js";
 import { createOrder } from "./orders.js";
 import { getIntegration } from "./integrations.js";
 import { safeEqual } from "../utils/crypto.js";
+import { normalizePayload } from "../utils/platformAdapters.js";
 
 const router = Router();
 
@@ -50,7 +51,10 @@ router.post("/:platform", async (req, res, next) => {
     }
 
     const body = req.body || {};
-    const externalId = String(body.externalId || body.orderId || "").trim();
+
+    // Translate the platform's payload into our normalised order shape.
+    const norm = normalizePayload(source, body);
+    const externalId = norm.externalId;
     if (!externalId) return res.status(400).json({ error: "externalId is required" });
 
     // Idempotency: ignore duplicates from the same platform.
@@ -61,18 +65,47 @@ router.post("/:platform", async (req, res, next) => {
       return res.json({ ok: true, duplicate: true, mappedOrderId: existing.mappedOrderId });
     }
 
-    // Log the raw payload first.
+    // Log the raw payload first (so unmapped orders can be recovered by admin).
     const log = await prisma.platformOrder.create({
       data: { platform: source, externalId, payload: body },
     });
 
-    const order = await createOrder(body.items, {
+    // Resolve each line to a menu item: use menuItemId if provided, else map the
+    // platform SKU via PlatformItemMap.
+    const skus = norm.items.filter((i) => !i.menuItemId && i.sku).map((i) => String(i.sku));
+    const maps = skus.length
+      ? await prisma.platformItemMap.findMany({ where: { platform: source, sku: { in: skus } } })
+      : [];
+    const skuToId = new Map(maps.map((m) => [m.sku, m.menuItemId]));
+
+    const cart = [];
+    const unmapped = [];
+    for (const it of norm.items) {
+      const menuItemId = it.menuItemId || skuToId.get(String(it.sku));
+      if (!menuItemId) {
+        unmapped.push(it.sku || "(no sku)");
+        continue;
+      }
+      cart.push({ menuItemId: Number(menuItemId), qty: it.qty, note: it.note });
+    }
+
+    // Don't create a half order — if any item is unmapped, reject so the platform
+    // retries after the admin adds the missing SKU mapping.
+    if (unmapped.length || cart.length === 0) {
+      return res.status(422).json({
+        error: cart.length === 0 ? "No mappable items in order" : "Some items are not mapped",
+        unmappedSkus: unmapped,
+        hint: `Add these SKUs for ${source} in Admin → Menu Mapping, then the order can be retried.`,
+      });
+    }
+
+    const order = await createOrder(cart, {
       type: "DELIVERY",
       source,
       externalId,
-      customerPhone: body.customer?.phone || body.delivery?.phone,
-      note: body.note,
-      delivery: body.delivery,
+      customerPhone: norm.customer?.phone || norm.delivery?.phone,
+      note: norm.note,
+      delivery: norm.delivery,
     });
 
     await prisma.platformOrder.update({
