@@ -5,7 +5,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Fraunces", "Georgia", "serif"],
+        display: ["Outfit", "Inter", "system-ui", "sans-serif"],
+        brand: ["Outfit", "Inter", "system-ui", "sans-serif"],
       },
       colors: {
         brand: {

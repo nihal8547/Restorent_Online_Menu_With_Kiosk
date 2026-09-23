@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { Spinner, Empty, Toast } from "../../components/ui.jsx";
 import { subscribeGlobal } from "../../socket.js";
+import { Search, CheckCircle, XCircle } from "lucide-react";
 
 export default function Waiters() {
   const today = new Date().toISOString().slice(0, 10);
@@ -271,7 +272,7 @@ export default function Waiters() {
       {/* ------------------------------------------------------------- */}
       <div className="card p-3.5 border border-slate-200/80 bg-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">🔍</span>
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search waiter by name or @username..."
@@ -294,13 +295,19 @@ export default function Waiters() {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                 statusFilter === st
                   ? "bg-slate-900 text-white shadow-sm"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
-              {st === "ALL" ? "All Waiters" : st === "ACTIVE" ? "🟢 Active" : "🔴 Inactive"}
+              {st === "ALL" ? (
+                "All Waiters"
+              ) : st === "ACTIVE" ? (
+                <><CheckCircle className="w-3.5 h-3.5" /> Active</>
+              ) : (
+                <><XCircle className="w-3.5 h-3.5" /> Inactive</>
+              )}
             </button>
           ))}
         </div>

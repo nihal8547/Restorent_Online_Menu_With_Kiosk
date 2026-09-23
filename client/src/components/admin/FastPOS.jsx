@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { Spinner, Toast } from "../ui.jsx";
+import { ShoppingCart, UtensilsCrossed } from "lucide-react";
 
 export default function FastPOS({ onClose, onComplete }) {
   const [categories, setCategories] = useState([]);
@@ -165,7 +166,7 @@ export default function FastPOS({ onClose, onComplete }) {
                           />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">
-                            <span className="text-2xl">🍲</span>
+                            <UtensilsCrossed className="w-6 h-6 opacity-80" />
                           </div>
                         )}
                       </div>
@@ -213,7 +214,7 @@ export default function FastPOS({ onClose, onComplete }) {
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-[150px] max-h-[40vh] lg:max-h-none">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-300">
-                <span className="text-4xl mb-2">🛒</span>
+                <ShoppingCart className="w-10 h-10 mb-2 opacity-50" />
                 <p className="font-medium text-sm">Cart is empty</p>
               </div>
             ) : (

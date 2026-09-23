@@ -13,7 +13,7 @@ const HOME_BY_ROLE = {
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const shopName = useSettings(s => s.shopName);
+  const { shopName, shopLogo } = useSettings();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -37,11 +37,21 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-ink px-4">
       <form onSubmit={submit} className="card w-full max-w-sm p-7">
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-ink text-2xl">
-            🔐
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-ink p-2 shadow-xl shadow-brand/10 border border-white/10">
+            <img
+              src={shopLogo || "/logo.svg"}
+              alt={shopName}
+              className="h-full w-full object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/logo.svg";
+              }}
+            />
           </div>
-          <h1 className="display mt-3 text-xl font-semibold text-ink">Staff Portal</h1>
-          <p className="text-sm text-gray-500">{shopName} · authorized access</p>
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-ink font-sans">Staff Portal</h1>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">
+            {shopName} · Authorized Access
+          </p>
         </div>
         <div className="space-y-3">
           <div>

@@ -41,7 +41,11 @@ export default function WaiterOrders() {
       {orders.length === 0 && <Empty>You haven't placed any orders today.</Empty>}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {orders.map((o) => (
+        {[...orders].sort((a, b) => {
+          if (a.paymentStatus === "PAID" && b.paymentStatus !== "PAID") return 1;
+          if (a.paymentStatus !== "PAID" && b.paymentStatus === "PAID") return -1;
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        }).map((o) => (
           <div key={o.id} className="card p-4">
             <div className="flex items-center justify-between">
               <span className="font-bold">{o.orderNo}</span>

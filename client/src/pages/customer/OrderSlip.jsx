@@ -151,7 +151,15 @@ export default function OrderSlip() {
 
         {/* Header: Shop Name & Details */}
         <div className="text-center mb-6 pb-6 border-b-2 border-dashed border-slate-200 px-5 pt-5">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">{shopName}</h1>
+          <img
+            src={useSettings.getState().shopLogo || "/logo.svg"}
+            alt={shopName}
+            className="mx-auto h-12 w-12 object-contain mb-2 rounded-xl"
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1 uppercase font-sans">{shopName}</h1>
           <p className="text-xs text-slate-500 font-medium">Thank you for dining with us!</p>
         </div>
 
@@ -245,9 +253,8 @@ export default function OrderSlip() {
           </p>
         </div>
 
-        {/* Footer */}
         <div className="px-5 pb-4 text-center text-[10px] text-gray-400">
-          <p>Thank you for choosing {BRAND.name}!</p>
+          <p>Thank you for choosing {shopName}!</p>
         </div>
 
         {/* Action buttons */}

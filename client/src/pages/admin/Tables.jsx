@@ -3,6 +3,7 @@ import { api } from "../../api.js";
 import { Spinner, Toast } from "../../components/ui.jsx";
 import { subscribeOrders } from "../../socket.js";
 import { useCoalescedCallback } from "../../hooks.js";
+import { Bike } from "lucide-react";
 
 export default function Tables() {
   const [tables, setTables] = useState([]);
@@ -60,7 +61,39 @@ export default function Tables() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">Tables & QR Codes</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+        <h1 className="text-xl font-bold">Tables & QR Codes</h1>
+      </div>
+
+      {/* Public Delivery Link Card */}
+      <div className="card mb-6 p-4 border border-brand/20 bg-brand/5 shadow-sm">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="font-bold text-brand flex items-center gap-2">
+              <Bike className="w-4 h-4" /> Public Delivery Link
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Share this link on social media. Orders placed through it will be locked to <strong className="text-slate-700">Delivery Only</strong> and require an address.
+            </p>
+            <div className="mt-3 flex gap-2 items-center">
+              <input 
+                readOnly 
+                className="input !py-1.5 !text-xs w-full sm:w-80 bg-white" 
+                value={`${window.location.origin}/menu?mode=delivery`} 
+              />
+              <button 
+                className="btn-primary !py-1.5 !text-xs shrink-0"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/menu?mode=delivery`);
+                  setToast("Link copied to clipboard!");
+                }}
+              >
+                Copy Link
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="card mb-6 flex gap-2 p-4">
         <input className="input" placeholder="Table number / name" value={newNo} onChange={(e) => setNewNo(e.target.value)} />

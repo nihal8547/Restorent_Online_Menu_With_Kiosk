@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { api, money, simulatePartnerOrders } from "../../api.js";
+import { api, money } from "../../api.js";
 import { subscribeOrders } from "../../socket.js";
 import { useCoalescedCallback } from "../../hooks.js";
 import { Spinner, Empty, StatusBadge, TypeBadge, PlatformBadge, Toast } from "../../components/ui.jsx";
 import FastPOS from "../../components/admin/FastPOS.jsx";
-import { Printer, Sparkles, MapPin, Phone } from "lucide-react";
+import { Printer, Sparkles, MapPin, Phone, Search, Zap, User, Clock } from "lucide-react";
 
 export default function Billing() {
   const [orders, setOrders] = useState([]);
@@ -15,36 +15,29 @@ export default function Billing() {
   const [staffFilter, setStaffFilter] = useState("ALL"); // ALL or staff username/name
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState("ALL");
-  const [simulating, setSimulating] = useState(false);
   const [active, setActive] = useState(null); // order being paid
   const [pay, setPay] = useState({ mode: "CASH", discount: 0 });
   const [toast, setToast] = useState("");
   const [fastPosOpen, setFastPosOpen] = useState(false);
 
-  const simulateOrders = async (platform = "ALL") => {
-    setSimulating(true);
-    try {
-      const data = await simulatePartnerOrders(platform);
-      setToast(data.message || `Simulated ${data.count} partner orders!`);
-      load();
-    } catch (e) {
-      setToast(e.message || "Failed to simulate partner orders");
-    } finally {
-      setSimulating(false);
-    }
-  };
+
 
   const load = useCallback(async () => {
-    const params = { today: 1 };
-    if (filter === "PENDING") params.paymentStatus = "PENDING";
-    if (filter === "PAID") params.paymentStatus = "PAID";
-    const [ordersRes, tablesRes] = await Promise.all([
-      api.get("/orders", { params }),
-      api.get("/tables").catch(() => ({ data: { tables: [] } })),
-    ]);
-    setOrders(ordersRes.data.orders || []);
-    setTables(tablesRes.data.tables || []);
-    setLoading(false);
+    try {
+      const params = { today: 1 };
+      if (filter === "PENDING") params.paymentStatus = "PENDING";
+      if (filter === "PAID") params.paymentStatus = "PAID";
+      const [ordersRes, tablesRes] = await Promise.all([
+        api.get("/orders", { params }),
+        api.get("/tables").catch(() => ({ data: { tables: [] } })),
+      ]);
+      setOrders(ordersRes.data.orders || []);
+      setTables(tablesRes.data.tables || []);
+    } catch (e) {
+      setToast(e.message || "Failed to load billing data");
+    } finally {
+      setLoading(false);
+    }
   }, [filter]);
 
   useEffect(() => {
@@ -74,14 +67,11 @@ export default function Billing() {
       });
       setToast("Payment collected ✓ Printing receipt…");
       
-      // Invisible iframe for seamless background printing
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = `/bill/${active.orderToken}?autoprint=1`;
-      document.body.appendChild(iframe);
-      setTimeout(() => {
-        if (document.body.contains(iframe)) document.body.removeChild(iframe);
-      }, 10000);
+      const printFrame = document.createElement("iframe");
+      printFrame.style.display = "none";
+      printFrame.src = `/bill/${active.orderToken}?autoprint=1`;
+      document.body.appendChild(printFrame);
+      setTimeout(() => printFrame.remove(), 10000); // cleanup after 10s
 
       setActive(null);
       load();
@@ -165,6 +155,10 @@ export default function Billing() {
       }
 
       return true;
+    }).sort((a, b) => {
+      if (a.paymentStatus === "PAID" && b.paymentStatus !== "PAID") return 1;
+      if (a.paymentStatus !== "PAID" && b.paymentStatus === "PAID") return -1;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
   }, [orders, staffFilter, channelFilter, search]);
 
@@ -247,15 +241,7 @@ export default function Billing() {
             + Manual Bill
           </button>
 
-          <button
-            onClick={() => simulateOrders("ALL")}
-            disabled={simulating}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 shadow-sm hover:bg-amber-100 transition ml-1"
-            title="Generate sample orders from Talabat, Snoonu, Keeta, Rafeeq & Deliveroo"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-spin" />
-            <span>{simulating ? "Simulating..." : "Simulate Partner Orders"}</span>
-          </button>
+
 
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner sm:ml-auto">
           <button
@@ -378,7 +364,7 @@ export default function Billing() {
       <div className="card p-3.5 border border-slate-200/80 bg-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Search Bar */}
         <div className="relative w-full sm:w-80">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">🔍</span>
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search by Order #, Table, Waiter, Staff..."
@@ -487,8 +473,14 @@ export default function Billing() {
               >
                 <div>
                   {/* Card Header: Order No & Status */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-base text-slate-900">{o.orderNo}</span>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-extrabold text-base text-slate-900">{o.orderNo}</span>
+                      <div className="text-[10px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
                     <StatusBadge value={o.paymentStatus} />
                   </div>
 
@@ -509,7 +501,7 @@ export default function Billing() {
 
                   {/* WHO TOOK THE ORDER (Waiter / Online Partner API / QR) */}
                   <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                    <span className="text-slate-400">⚡</span>
+                    <Zap className="w-3.5 h-3.5 text-slate-400" />
                     <span className="font-medium text-[11px]">
                       Channel:{" "}
                       <strong className="text-slate-800 font-semibold">
@@ -537,7 +529,7 @@ export default function Billing() {
                     <div className="mt-2 rounded-xl bg-slate-50 p-2 text-xs text-slate-700 border border-slate-200/80 space-y-0.5">
                       <div className="flex items-center justify-between">
                         <span className="font-bold flex items-center gap-1 text-slate-900">
-                          <span className="text-slate-400">👤</span>
+                          <User className="w-3.5 h-3.5 text-slate-400" />
                           {o.deliveryInfo.name}
                         </span>
                         {o.deliveryInfo.phone && (
@@ -635,13 +627,11 @@ export default function Billing() {
                         {o.orderToken && (
                           <button
                             onClick={() => {
-                              const iframe = document.createElement("iframe");
-                              iframe.style.display = "none";
-                              iframe.src = `/bill/${o.orderToken}?autoprint=1`;
-                              document.body.appendChild(iframe);
-                              setTimeout(() => {
-                                if (document.body.contains(iframe)) document.body.removeChild(iframe);
-                              }, 10000);
+                              const printFrame = document.createElement("iframe");
+                              printFrame.style.display = "none";
+                              printFrame.src = `/bill/${o.orderToken}?autoprint=1`;
+                              document.body.appendChild(printFrame);
+                              setTimeout(() => printFrame.remove(), 10000); // cleanup after 10s
                             }}
                             title="Reprint receipt"
                             className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition flex items-center justify-center"

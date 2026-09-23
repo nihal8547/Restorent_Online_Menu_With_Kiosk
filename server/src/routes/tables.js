@@ -10,8 +10,8 @@ const adminOnly = [requireAuth, requireRole("ADMIN")];
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 // Public: resolve a QR token to a table (used by the customer app after scan)
-// GET /api/tables/resolve/:qrToken
-router.get("/resolve/:qrToken", async (req, res, next) => {
+// GET /api/tables/resolve/:qrToken and /api/tables/token/:qrToken
+const resolveQrToken = async (req, res, next) => {
   try {
     const table = await prisma.restaurantTable.findUnique({
       where: { qrToken: req.params.qrToken },
@@ -22,7 +22,10 @@ router.get("/resolve/:qrToken", async (req, res, next) => {
   } catch (e) {
     next(e);
   }
-});
+};
+router.get("/resolve/:qrToken", resolveQrToken);
+router.get("/token/:qrToken", resolveQrToken);
+
 
 // Staff (any role): active tables for placing an order — minimal fields.
 router.get("/for-order", requireAuth, async (req, res, next) => {

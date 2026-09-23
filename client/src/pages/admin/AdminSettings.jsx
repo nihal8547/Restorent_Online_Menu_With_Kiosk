@@ -33,7 +33,7 @@ const SETTINGS_TABS = [
 
 export default function AdminSettings() {
   const { user } = useAuth();
-  const { shopName, shopTagline, currency, callWaiterEnabled, updateSettings } = useSettings();
+  const { shopName, shopTagline, currency, shopLogo, callWaiterEnabled, updateSettings } = useSettings();
 
   const [activeTab, setActiveTab] = useState("assistance");
   const [toast, setToast] = useState("");
@@ -45,7 +45,6 @@ export default function AdminSettings() {
   // Profile Form
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
-    username: user?.username || "",
     password: "",
   });
   const [savingProfile, setSavingProfile] = useState(false);
@@ -55,6 +54,7 @@ export default function AdminSettings() {
     shopName: shopName || "",
     shopTagline: shopTagline || "",
     currency: currency || "",
+    shopLogo: shopLogo || "/logo.svg",
   });
   const [savingShop, setSavingShop] = useState(false);
 
@@ -70,8 +70,8 @@ export default function AdminSettings() {
   const [savingTax, setSavingTax] = useState(false);
 
   useEffect(() => {
-    setShopForm({ shopName, shopTagline, currency });
-  }, [shopName, shopTagline, currency]);
+    setShopForm({ shopName, shopTagline, currency, shopLogo: shopLogo || "/logo.svg" });
+  }, [shopName, shopTagline, currency, shopLogo]);
 
   useEffect(() => {
     setAssistanceEnabled(callWaiterEnabled !== false);
@@ -347,6 +347,62 @@ export default function AdminSettings() {
               </div>
 
               <form onSubmit={saveShopConfig} className="space-y-4">
+                {/* Company Logo Setting */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                    Company Logo
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                    <div className="h-16 w-16 rounded-2xl bg-white border border-slate-200 p-2 flex items-center justify-center shrink-0 shadow-sm">
+                      <img
+                        src={shopForm.shopLogo || "/logo.svg"}
+                        alt="Logo Preview"
+                        className="h-full w-full object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/logo.svg";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 w-full space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Logo image URL (e.g. /logo.svg or https://...)"
+                        className="input text-xs"
+                        value={shopForm.shopLogo}
+                        onChange={(e) => setShopForm({ ...shopForm, shopLogo: e.target.value })}
+                      />
+                      <div className="flex items-center gap-2">
+                        <label className="btn-outline !py-1 !px-3 text-xs cursor-pointer inline-flex items-center gap-1.5 hover:bg-slate-100">
+                          <span>Upload Image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  setShopForm((prev) => ({ ...prev, shopLogo: reader.result }));
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShopForm({ ...shopForm, shopLogo: "/logo.svg" })}
+                          className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
+                        >
+                          Reset Default Logo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
                     Shop / Header Name

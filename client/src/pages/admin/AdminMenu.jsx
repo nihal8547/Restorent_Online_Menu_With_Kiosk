@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { api, money } from "../../api.js";
 import { Spinner, Toast } from "../../components/ui.jsx";
+import { Utensils, UtensilsCrossed } from "lucide-react";
 import BannersManager from "../../components/admin/BannersManager.jsx";
 
 // Predefined quick image presets for fast food item creation
@@ -414,8 +415,8 @@ export default function AdminMenu() {
       {viewModel === "card" && (
         <div className="space-y-4">
           {filteredItems.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-              <span className="text-4xl">🍲</span>
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center flex flex-col items-center">
+              <UtensilsCrossed className="w-10 h-10 text-slate-300" />
               <h3 className="mt-3 text-base font-bold text-slate-800">No dishes match your filter</h3>
               <p className="mt-1 text-xs text-slate-500">Try changing your search query or category selection.</p>
             </div>
@@ -446,7 +447,7 @@ export default function AdminMenu() {
                         item.photoUrl ? "hidden" : "flex"
                       }`}
                     >
-                      <span className="text-4xl opacity-80">🥘</span>
+                      <Utensils className="w-10 h-10 opacity-80" />
                       <span className="text-[11px] text-slate-400 mt-1 font-medium">Zafran Kitchen</span>
                     </div>
 
@@ -605,7 +606,7 @@ export default function AdminMenu() {
                                 item.photoUrl ? "hidden" : "flex"
                               }`}
                             >
-                              🍲
+                              <UtensilsCrossed className="w-6 h-6 text-slate-500" />
                             </div>
                           </div>
 

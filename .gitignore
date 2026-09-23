@@ -1,35 +1,63 @@
-# Dependencies
+# Dependencies (NEVER commit or deploy node_modules)
 node_modules/
 **/node_modules/
+.pnp
+.pnp.js
 
-# Environment
+# Environment variables & secrets
 .env
+.env.*
+!.env.example
 **/.env
+**/.env.*
 !**/.env.example
 
-# Build output
+# Production & Build outputs
 dist/
 build/
 client/dist/
+*.local
+
+# Deployment archives & bundles
+*.tar
+*.tar.gz
+deploy.tar.gz
+deploy-package.tar.gz
 
 # Logs
+logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Prisma
+# Prisma SQLite / local dev databases
 server/prisma/*.db
+server/prisma/*.db-journal
 server/prisma/migrations/dev.db*
 
-# OS / editor
+# OS & Editor files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 .vscode/
 .idea/
 *.swp
+*.swo
 
-# Uploads (local dev)
+# Uploads (local dev uploaded media)
+uploads/*
+!uploads/.gitkeep
 server/uploads/*
 !server/uploads/.gitkeep
 
-# Vite temp files
+# Vite & Tooling caches
+.vite/
 *.timestamp-*.mjs
 vite.config.js.timestamp-*
+.eslintcache

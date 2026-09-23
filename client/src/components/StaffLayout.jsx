@@ -150,7 +150,7 @@ export function RequireRole({ roles, children }) {
 
 export default function StaffLayout() {
   const { user, logout } = useAuth();
-  const shopName = useSettings(s => s.shopName);
+  const { shopName, shopLogo } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -231,12 +231,18 @@ export default function StaffLayout() {
 
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white font-black shadow-md shadow-brand/25">
-              {BRAND.name.charAt(0)}
-            </div>
+            <img
+              src={shopLogo || BRAND.logo}
+              alt={shopName}
+              className="h-9 w-9 rounded-xl object-contain bg-white p-1 border border-slate-200/80 shadow-sm shrink-0"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/logo.svg";
+              }}
+            />
             <div>
               <div className="flex items-center gap-2">
-                <span className="display font-bold text-base sm:text-lg tracking-tight text-slate-900">
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 font-sans">
                   {shopName}
                 </span>
                 <span className="hidden sm:inline-block rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
@@ -336,11 +342,17 @@ export default function StaffLayout() {
           {/* Mobile Drawer Top Brand Header */}
           <div className="flex items-center justify-between border-b border-white/10 p-4 lg:hidden">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white font-bold text-sm">
-                {BRAND.name.charAt(0)}
-              </div>
+              <img
+                src={shopLogo || BRAND.logo}
+                alt={shopName}
+                className="h-8 w-8 rounded-lg object-contain bg-white p-1 shrink-0"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/logo.svg";
+                }}
+              />
               <div>
-                <span className="display font-bold text-base text-white">{shopName}</span>
+                <span className="font-extrabold text-base text-white font-sans">{shopName}</span>
                 <span className="ml-2 rounded bg-brand/20 px-1.5 py-0.5 text-[10px] font-bold text-brand-light uppercase">
                   {user.role}
                 </span>

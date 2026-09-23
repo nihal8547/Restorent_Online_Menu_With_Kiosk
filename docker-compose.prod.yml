@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zafran_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zafran_secure_db_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-zafran_db}
+    volumes:
+      - zafran_pgdata:/var/lib/postgresql/data
+    networks:
+      - zafran_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-zafran_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: zafran_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-zafran_secure_db_pass_2026}@db:5432/${POSTGRES_DB:-zafran_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-zafran_jwt_super_secret_production_key_98374}
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: https://${DOMAIN:-menu.webbea.qa}
+      CORS_ORIGIN: https://${DOMAIN:-menu.webbea.qa}
+      PLATFORM_WEBHOOK_SECRET: ${PLATFORM_WEBHOOK_SECRET:-zafran_platform_webhook_secret_84732}
+      INTEGRATION_ENC_KEY: ${INTEGRATION_ENC_KEY:-zafran_enc_key_32_bytes_long_ok!}
+      PUBLIC_URL: https://${DOMAIN:-menu.webbea.qa}
+      UPLOADS_DIR: /uploads
+    ports:
+      - "127.0.0.1:4050:4000"
+    volumes:
+      - zafran_uploads:/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - zafran_net
+
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: zafran_web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3050:80"
+    networks:
+      - zafran_net
+
+volumes:
+  zafran_pgdata:
+  zafran_uploads:
+
+networks:
+  zafran_net:
+    driver: bridge

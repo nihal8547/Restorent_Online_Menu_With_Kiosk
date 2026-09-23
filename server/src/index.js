@@ -38,6 +38,7 @@ import inventoryRoutes from "./routes/inventory.js";
 import accountingRoutes from "./routes/accounting.js";
 import integrationRoutes from "./routes/integrations.js";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -88,7 +89,11 @@ app.use("/api/accounting", accountingRoutes);
 app.use("/api/integrations", integrationRoutes);
 
 // Serve static files from the uploads directory
-app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
+const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, "../../uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadsDir));
 
 // 404 for unknown API routes
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));

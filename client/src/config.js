@@ -8,4 +8,5 @@ export const BRAND = {
   tagline: "Modern Kitchen",
   // Currency prefix shown next to prices (e.g. "QR", "AED", "₹", "$").
   currency: "QR",
+  logo: "/logo.svg",
 };

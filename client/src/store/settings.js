@@ -6,6 +6,7 @@ export const useSettings = create((set) => ({
   shopName: BRAND.name,
   shopTagline: BRAND.tagline,
   currency: BRAND.currency,
+  shopLogo: BRAND.logo || "/logo.svg",
   callWaiterEnabled: true,
   loading: true,
 
@@ -16,6 +17,7 @@ export const useSettings = create((set) => ({
         shopName: data.shopName || BRAND.name,
         shopTagline: data.shopTagline || BRAND.tagline,
         currency: data.currency || BRAND.currency,
+        shopLogo: data.shopLogo || BRAND.logo || "/logo.svg",
         callWaiterEnabled: data.call_waiter_enabled !== "0" && data.call_waiter_enabled !== false,
         loading: false,
       });

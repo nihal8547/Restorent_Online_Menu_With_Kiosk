@@ -4,6 +4,7 @@ import { api, money } from "../../api.js";
 import { Spinner } from "../../components/ui.jsx";
 import { watchOrder } from "../../socket.js";
 import { Printer, Receipt, CheckCircle } from "lucide-react";
+import { useSettings } from "../../store/settings.js";
 
 export default function BillView() {
   const { orderToken } = useParams();
@@ -105,13 +106,21 @@ export default function BillView() {
       <div ref={receiptRef} className="receipt-wrapper card p-5">
         {/* Header */}
         <div className="receipt-header text-center">
+          <img
+            src={useSettings.getState().shopLogo || "/logo.svg"}
+            alt="Logo"
+            className="mx-auto h-12 w-12 object-contain mb-3 rounded-xl print:h-10 print:w-10"
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
           <div className="flex justify-center text-emerald-500 mb-2 print:hidden">
             <CheckCircle className="w-10 h-10" />
           </div>
           <div className="hidden print:flex items-center justify-center gap-2 text-2xl font-bold tracking-wide">
             <Receipt className="w-6 h-6" /> RECEIPT
           </div>
-          <h1 className="mt-1 text-xl font-bold">Payment Received</h1>
+          <h1 className="mt-1 text-xl font-bold font-sans">Payment Received</h1>
 
           {/* Fiscal / tax business header */}
           {(fiscal.businessName || fiscal.taxNumber) && (
